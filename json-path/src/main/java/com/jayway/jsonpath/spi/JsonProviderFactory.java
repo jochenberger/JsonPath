@@ -19,46 +19,16 @@ import com.jayway.jsonpath.spi.impl.JsonSmartJsonProvider;
 /**
  * @author Kalle Stenflo
  */
-
 public abstract class JsonProviderFactory {
 
-    private static ThreadLocal<JsonProviderFactory> providerFactory = new ThreadLocal<JsonProviderFactory>();
+    private static JsonProvider provider = new JsonSmartJsonProvider();
 
-    /**
-     * Get a {@link JsonProvider}, created using a default implementation. The
-     * factory's behavior can be overridden using
-     * {@link #setProviderFactory(JsonProviderFactory)}.
-     * 
-     * @return a JsonProvider
-     */
-    public static JsonProvider getProvider() {
-        JsonProviderFactory factory = providerFactory.get();
-        if (factory != null){
-            return factory.createProvider();
-        }
-        return new JsonSmartJsonProvider();
+    public static JsonProvider createProvider() {
+        return provider;
     }
 
-    public abstract JsonProvider createProvider(); 
-    
-    /**
-     * Sets a {@link JsonProviderFactory} to be used for the current thread.
-     * This uses a {@link ThreadLocal} internally which should be cleaned up by
-     * a call to {@link #reset()} when done.
-     * 
-     * @param factory the {@link JsonProviderFactory} to be used for the
-     * current thread.
-     */
-    public static void setProviderFactory(JsonProviderFactory factory) {
-        providerFactory.set(factory);
-    }
-    
-    /**
-     * Resets the {@link ThreadLocal} {@link JsonProviderFactory} and restores
-     * the default {@link JsonProviderFactory} implementation.
-     */
-    public static void reset() {
-      providerFactory.remove();
+    public static synchronized void setProvider(JsonProvider jsonProvider) {
+        provider = jsonProvider;
     }
 
 

@@ -506,7 +506,7 @@ public class JsonModel {
     public static JsonModel model(String json) {
         notEmpty(json, "json can not be null or empty");
 
-        return new JsonModel(json, JsonProviderFactory.getProvider());
+        return new JsonModel(json, JsonProviderFactory.createProvider());
     }
     public static JsonModel create(String json) {
         return model(json);
@@ -521,7 +521,7 @@ public class JsonModel {
     public static JsonModel model(Object jsonObject) {
         notNull(jsonObject, "jsonObject can not be null");
 
-        return new JsonModel(jsonObject, JsonProviderFactory.getProvider());
+        return new JsonModel(jsonObject, JsonProviderFactory.createProvider());
     }
     public static JsonModel create(Object jsonObject) {
         return model(jsonObject);
@@ -536,7 +536,7 @@ public class JsonModel {
     public static JsonModel model(URL url) throws IOException {
         notNull(url, "url can not be null");
 
-        return new JsonModel(url, JsonProviderFactory.getProvider());
+        return new JsonModel(url, JsonProviderFactory.createProvider());
     }
     public static JsonModel create(URL url) throws IOException  {
         return model(url);
@@ -551,7 +551,7 @@ public class JsonModel {
     public static JsonModel model(InputStream jsonInputStream) throws IOException {
         notNull(jsonInputStream, "jsonInputStream can not be null");
 
-        return new JsonModel(jsonInputStream, JsonProviderFactory.getProvider());
+        return new JsonModel(jsonInputStream, JsonProviderFactory.createProvider());
     }
     public static JsonModel create(InputStream jsonInputStream) throws IOException  {
         return model(jsonInputStream);
@@ -570,7 +570,7 @@ public class JsonModel {
             throw new IndefinitePathException(jsonPath.getPath());
         }
 
-        JsonProvider jsonProvider = JsonProviderFactory.getProvider();
+        JsonProvider jsonProvider = JsonProviderFactory.createProvider();
 
         Object modelRef = jsonObject;
 
