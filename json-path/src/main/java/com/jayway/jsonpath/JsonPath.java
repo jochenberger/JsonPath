@@ -16,14 +16,16 @@ package com.jayway.jsonpath;
 
 
 import com.jayway.jsonpath.internal.IOUtils;
-import com.jayway.jsonpath.internal.Log;
 import com.jayway.jsonpath.internal.PathToken;
 import com.jayway.jsonpath.internal.PathTokenizer;
 import com.jayway.jsonpath.internal.filter.PathTokenFilter;
 import com.jayway.jsonpath.spi.HttpProviderFactory;
 import com.jayway.jsonpath.spi.JsonProvider;
 import com.jayway.jsonpath.spi.JsonProviderFactory;
+
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -99,6 +101,8 @@ import static org.apache.commons.lang3.Validate.*;
  */
 public class JsonPath {
 
+    private static final Logger LOG = LoggerFactory.getLogger(JsonPath.class.getName());
+
     private static Pattern DEFINITE_PATH_PATTERN = Pattern.compile(".*(\\.\\.|\\*|\\[[\\\\/]|\\?|,|:\\s?]|\\[\\s?:|>|\\(|<|=|\\+).*");
     private static Pattern INVALID_PATH_PATTERN = Pattern.compile("[^\\?\\+=\\-\\*/!]\\(");
 
@@ -122,8 +126,8 @@ public class JsonPath {
 
         this.tokenizer = new PathTokenizer(jsonPath);
 
-        if(Log.isDebugEnabled()){
-            Log.debug("New JsonPath:\n{}", this.tokenizer.toString());
+        if(LOG.isDebugEnabled()){
+            LOG.debug("New JsonPath:\n{}", this.tokenizer.toString());
         }
 
         this.filters = new LinkedList<Filter>();
