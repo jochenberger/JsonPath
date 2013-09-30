@@ -15,18 +15,35 @@
 package com.jayway.jsonpath;
 
 /**
- * @author Kalle Stenflo
+ * User: kalle
+ * Date: 8/30/13
+ * Time: 12:03 PM
  */
-public interface Transformer<T> {
+public interface ReadContext {
 
     /**
+     * Returns the JSON model that this context is reading
      *
-     * @param obj object to transform
-     * @param configuration configuration to use
-     * @return the transformed object
+     * @return json model
      */
-    public Object transform(T obj, Configuration configuration);
+    Object json();
 
+    /**
+     * Reads the given path from this context
+     *
+     * @param path path to read
+     * @param filters filters
+     * @param <T>
+     * @return result
+     */
+    <T> T read(String path, Filter... filters);
 
-
+    /**
+     * Reads the given path from this context
+     *
+     * @param path path to apply
+     * @param <T>
+     * @return result
+     */
+    <T> T read(JsonPath path);
 }

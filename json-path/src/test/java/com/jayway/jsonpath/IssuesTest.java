@@ -1,7 +1,6 @@
 package com.jayway.jsonpath;
 
-import com.jayway.jsonpath.internal.IOUtils;
-
+import com.jayway.jsonpath.internal.Utils;
 import net.minidev.json.JSONObject;
 
 import org.hamcrest.Matchers;
@@ -12,6 +11,7 @@ import java.util.List;
 import java.util.Map;
 
 import static junit.framework.Assert.assertEquals;
+import static junit.framework.Assert.assertNull;
 import static junit.framework.Assert.assertTrue;
 import static org.junit.Assert.assertThat;
 
@@ -23,8 +23,25 @@ import static org.junit.Assert.assertThat;
  */
 public class IssuesTest {
 
-    //@Test(expected = PathNotFoundException.class)
-    @Test()
+
+    @Test
+    public void issue_36() {
+        String json = "{\n" +
+                "\n" +
+                " \"arrayOfObjectsAndArrays\" : [ { \"k\" : [\"json\"] }, { \"k\":[\"path\"] }, { \"k\" : [\"is\"] }, { \"k\" : [\"cool\"] } ],\n" +
+                "\n" +
+                "  \"arrayOfObjects\" : [{\"k\" : \"json\"}, {\"k\":\"path\"}, {\"k\" : \"is\"}, {\"k\" : \"cool\"}]\n" +
+                "\n" +
+                " }";
+
+        Object o1 = JsonPath.read(json, "$.arrayOfObjectsAndArrays..k ");
+        Object o2 = JsonPath.read(json, "$.arrayOfObjects..k ");
+
+        assertEquals("[[\"json\"],[\"path\"],[\"is\"],[\"cool\"]]", o1.toString());
+        assertEquals("[\"json\",\"path\",\"is\",\"cool\"]", o2.toString());
+    }
+
+    @Test(expected = PathNotFoundException.class)
     public void issue_11() throws Exception {
         String json = "{ \"foo\" : [] }";
         List<String> result = JsonPath.read(json, "$.foo[?(@.rel= 'item')][0].uri");
@@ -90,7 +107,7 @@ public class IssuesTest {
             is.close();
         } catch (Exception e) {
             e.printStackTrace();
-            IOUtils.closeQuietly(is);
+            Utils.closeQuietly(is);
         }
 
     }
@@ -128,9 +145,22 @@ public class IssuesTest {
 
     @Test(expected = PathNotFoundException.class)
     public void issue_22() throws Exception {
+
+        Configuration configuration = Configuration.builder().options(Option.THROW_ON_MISSING_PROPERTY).build();
+        //Configuration configuration = Configuration.defaultConfiguration();
+
         String json = "{\"a\":{\"b\":1,\"c\":2}}";
-        System.out.println(JsonPath.read(json, "a.d"));
+        System.out.println(JsonPath.parse(json, configuration).read("a.d"));
     }
+    @Test
+    public void issue_22c() throws Exception {
+        Configuration configuration = Configuration.builder().build();
+
+        String json = "{\"a\":{\"b\":1,\"c\":2}}";
+        assertNull(JsonPath.parse(json, configuration).read("a.d"));
+    }
+
+
 
     @Test
     public void issue_22b() throws Exception {

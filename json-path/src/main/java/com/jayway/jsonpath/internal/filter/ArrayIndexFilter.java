@@ -14,6 +14,7 @@
  */
 package com.jayway.jsonpath.internal.filter;
 
+import com.jayway.jsonpath.Configuration;
 import com.jayway.jsonpath.PathNotFoundException;
 import com.jayway.jsonpath.spi.JsonProvider;
 
@@ -51,7 +52,8 @@ public class ArrayIndexFilter extends PathTokenFilter {
 
 
     @Override
-    public Object filter(Object obj, JsonProvider jsonProvider) {
+    public Object filter(Object obj, Configuration configuration) {
+        JsonProvider jsonProvider = configuration.getProvider();
 
         Object result = jsonProvider.createArray();
 
@@ -60,7 +62,11 @@ public class ArrayIndexFilter extends PathTokenFilter {
                 String trimmedCondition = trim(this.trimmedCondition, 1, 0);
                 int get = Integer.parseInt(trimmedCondition);
                 for (int i = 0; i < get; i++) {
-                    jsonProvider.setProperty(result, jsonProvider.length(result), jsonProvider.getProperty(obj, i));
+                    try {
+                        jsonProvider.setProperty(result, jsonProvider.length(result), jsonProvider.getProperty(obj, i));
+                    } catch (IndexOutOfBoundsException e){
+                        break;
+                    }
                 }
                 return result;
 
@@ -76,6 +82,10 @@ public class ArrayIndexFilter extends PathTokenFilter {
                     int start = jsonProvider.length(obj) + get;
                     int stop = jsonProvider.length(obj);
 
+                    if(start < 0){
+                        start = 0;
+                    }
+
                     for (int i = start; i < stop; i ++){
                         jsonProvider.setProperty(result, jsonProvider.length(result), jsonProvider.getProperty(obj, i));
                     }
@@ -89,35 +99,49 @@ public class ArrayIndexFilter extends PathTokenFilter {
                 int stop = Integer.parseInt(indexes[1]);
 
                 for (int i = start; i < stop; i ++){
-                    jsonProvider.setProperty(result, jsonProvider.length(result), jsonProvider.getProperty(obj, i));
+                    try {
+                        jsonProvider.setProperty(result, jsonProvider.length(result), jsonProvider.getProperty(obj, i));
+                    } catch (IndexOutOfBoundsException e){
+                        break;
+                    }
                 }
                 return result;
             }
         } else {
             String[] indexArr = COMMA.split(trimmedCondition);
 
-            if(obj == null || jsonProvider.length(obj) == 0){
-                //throw new PathNotFoundException("Failed to access array index: '" + condition + "' since the array is null or empty");
+            //if(obj == null || jsonProvider.length(obj) == 0){
+            if(obj == null){
                 return result;
             }
 
-            if (indexArr.length == 1) {
-                return jsonProvider.getProperty(obj, indexArr[0]);
+            try {
+                if (indexArr.length == 1) {
+                    /*
+                    if(jsonProvider.length(obj) == 0){
+                        throw new PathNotFoundException("Array index [" + indexArr[0] + "] not found in path");
+                    }
+                    */
 
-            } else {
-                for (String idx : indexArr) {
-                    jsonProvider.setProperty(result, jsonProvider.length(result), jsonProvider.getProperty(obj, idx.trim()));
+                    return jsonProvider.getProperty(obj, indexArr[0]);
+                } else {
+                    for (String idx : indexArr) {
+                        jsonProvider.setProperty(result, jsonProvider.length(result), jsonProvider.getProperty(obj, idx.trim()));
+                    }
+                    return result;
                 }
-                return result;
+            } catch (IndexOutOfBoundsException e){
+                throw new PathNotFoundException("Array index " + indexArr + " not found in path", e);
             }
+
         }
     }
 
     @Override
-    public Object getRef(Object obj, JsonProvider jsonProvider) {
+    public Object getRef(Object obj, Configuration configuration) {
         if(SINGLE_ARRAY_INDEX_PATTERN.matcher(condition).matches()){
             String trimmedCondition = trim(condition, 1, 1);
-            return jsonProvider.getProperty(obj, trimmedCondition);
+            return configuration.getProvider().getProperty(obj, trimmedCondition);
 
         } else {
             throw new UnsupportedOperationException();

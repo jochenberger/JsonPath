@@ -2,6 +2,7 @@ package com.jayway.jsonpath;
 
 import com.jayway.jsonpath.internal.filter.eval.ExpressionEvaluator;
 import org.codehaus.jackson.node.BigIntegerNode;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.math.BigDecimal;
@@ -9,6 +10,8 @@ import java.math.BigInteger;
 import java.util.List;
 import java.util.Map;
 
+import static com.jayway.jsonpath.Criteria.where;
+import static com.jayway.jsonpath.Filter.filter;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -186,11 +189,36 @@ public class ExpressionEvalTest {
         assertTrue(ExpressionEvaluator.eval(null, "!=", "10"));
     }
 
+    @Test
+    public void and_operator_in_filter() {
+
+        Object o = JsonPath.read(DOCUMENT, "$.characters[?(@.name == 'Luke Skywalker' && @.occupation == 'Farm boy')]");
+
+        assertEquals("[{\"occupation\":\"Farm boy\",\"name\":\"Luke Skywalker\",\"aliases\":[\"Nerf herder\"],\"offspring\":null}]", o.toString());
+    }
+
+    @Test
+    public void not_equal_in_and_operator_filter() {
+
+
+        Object o = JsonPath.read(DOCUMENT, "$.characters[?(@.name == 'Luke Skywalker' && @.occupation != 'Farm boy')]");
+        assertEquals("[]", o.toString());
+
+        o = JsonPath.read(DOCUMENT, "$.characters[?(@.name == 'Luke Skywalker' && @.occupation != 'City boy')]");
+        assertEquals("[{\"occupation\":\"Farm boy\",\"name\":\"Luke Skywalker\",\"aliases\":[\"Nerf herder\"],\"offspring\":null}]", o.toString());
+
+
+    }
 
     @Test
     public void nulls_filter() {
 
-        List<Map<String, Object>> result = JsonPath.read(DOCUMENT, "$.characters[?(@.offspring == null)]");
+        List<Map<String, Object>> result = JsonPath.read(DOCUMENT, "$.characters[?]", filter(where("offspring").exists(false)));
+        System.out.println(result);
+        assertEquals(1, result.size());
+
+
+        result = JsonPath.read(DOCUMENT, "$.characters[?(@.offspring == null)]");
         assertEquals(1, result.size());
 
         result = JsonPath.read(DOCUMENT, "$.characters[?(@.offspring != null)]");
@@ -198,6 +226,8 @@ public class ExpressionEvalTest {
 
         result = JsonPath.read(DOCUMENT, "$.characters[?(@.offspring)]");
         assertEquals(4, result.size());
+
+
     }
 
 

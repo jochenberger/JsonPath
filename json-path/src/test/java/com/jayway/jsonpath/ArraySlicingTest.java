@@ -38,8 +38,8 @@ public class ArraySlicingTest {
 
     @Test
     public void get_by_position(){
-        int result = JsonPath.read(JSON_ARRAY, "$[3]");
-        assertEquals(7, result);
+        Integer result = JsonPath.read(JSON_ARRAY, "$[3]");
+        assertEquals(7, result.intValue());
     }
 
     @Test
@@ -54,15 +54,18 @@ public class ArraySlicingTest {
         assertThat(result, Matchers.contains(3, 5, 7, 8));
     }
 
+
     @Test
     public void get_between_index_2(){
         List<Integer> result = JsonPath.read(JSON_ARRAY, "$[0:1]");
         assertThat(result, Matchers.contains(1));
     }
 
-    @Test(expected = IndexOutOfBoundsException.class)
+    //@Test(expected = IndexOutOfBoundsException.class)
+    @Test
     public void get_between_index_out_of_bounds(){
         List<Integer> result = JsonPath.read(JSON_ARRAY, "$[1:15]");
+        assertThat(result, Matchers.contains(3, 5, 7, 8, 13, 20));
     }
 
     @Test
@@ -73,14 +76,14 @@ public class ArraySlicingTest {
 
     @Test
     public void get_from_tail(){
-        int result = JsonPath.read(JSON_ARRAY, "$[3:]");
-        assertEquals(8, result);
+        Integer result = JsonPath.read(JSON_ARRAY, "$[3:]");
+        assertEquals(8, result.intValue());
     }
 
     @Test
     public void get_from_tail_length(){
-        int result = JsonPath.read(JSON_ARRAY, "$[(@.length -3)]");
-        assertEquals(8, result);
+        Integer result = JsonPath.read(JSON_ARRAY, "$[(@.length -3)]");
+        assertEquals(8, result.intValue());
     }
 
     @Test

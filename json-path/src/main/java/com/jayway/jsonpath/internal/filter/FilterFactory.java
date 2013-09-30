@@ -14,6 +14,7 @@
  */
 package com.jayway.jsonpath.internal.filter;
 
+import com.jayway.jsonpath.InvalidPathException;
 import com.jayway.jsonpath.internal.PathToken;
 
 /**
@@ -39,11 +40,10 @@ public class FilterFactory {
 
             return ALL_ARRAY_ITEMS_FILTER;
 
-        } else if ("*".equals(pathFragment) || "['*']".equals(pathFragment)) {
+        } else if ("*".equals(pathFragment)) {
 
             return WILDCARD_FILTER;
 
-        //} else if (pathFragment.contains("..")) {
         } else if (SCAN_FILTER.getCondition().equals(pathFragment)) {
 
             return SCAN_FILTER;
@@ -54,17 +54,19 @@ public class FilterFactory {
 
         } else if (!pathFragment.contains("[")) {
 
-            return new FieldFilter(pathFragment);
+            return new FieldFilter(token);
 
         } else if (pathFragment.contains("[")) {
 
             if (pathFragment.startsWith("[?")) {
-                if (!pathFragment.contains("=") && !pathFragment.contains("<") && !pathFragment.contains(">")) {
+
+                if(ArrayEvalFilter.isConditionStatement(pathFragment)){
+                    return new ArrayEvalFilter(pathFragment);
+                } else if (!pathFragment.contains("=") && !pathFragment.contains("<") && !pathFragment.contains(">")) {
                     //[?(@.isbn)]
                     return new HasFieldFilter(pathFragment);
                 } else {
-                    //[?(@.name='foo')]
-                    return new ArrayEvalFilter(pathFragment);
+                    throw new InvalidPathException("Failed to create PathTokenFilter for path fragment: " + pathFragment);
                 }
             } else {
                 //[0]

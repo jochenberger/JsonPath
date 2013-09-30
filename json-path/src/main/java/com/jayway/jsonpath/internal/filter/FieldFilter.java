@@ -14,8 +14,11 @@
  */
 package com.jayway.jsonpath.internal.filter;
 
+import com.jayway.jsonpath.Configuration;
 import com.jayway.jsonpath.Filter;
+import com.jayway.jsonpath.Option;
 import com.jayway.jsonpath.PathNotFoundException;
+import com.jayway.jsonpath.internal.PathToken;
 import com.jayway.jsonpath.spi.JsonProvider;
 
 import java.util.Collection;
@@ -27,14 +30,17 @@ import java.util.LinkedList;
 public class FieldFilter extends PathTokenFilter {
 
     private final String[] split;
+    private final PathToken pathToken;
 
-    public FieldFilter(String condition) {
-        super(condition);
+    public FieldFilter(PathToken pathToken) {
+        super(pathToken.getFragment());
+        this.pathToken = pathToken;
         this.split = condition.split("','");
     }
 
     @Override
-    public Object filter(Object obj, JsonProvider jsonProvider, LinkedList<Filter> filters, boolean inArrayContext) {
+    public Object filter(Object obj, Configuration configuration, LinkedList<Filter> filters, boolean inArrayContext) {
+        JsonProvider jsonProvider = configuration.getProvider();
         if (jsonProvider.isArray(obj)) {
             if (!inArrayContext) {
                 throw new PathNotFoundException("Path '" + condition + "' is being applied to an array. Arrays can not have attributes.");
@@ -48,9 +54,12 @@ public class FieldFilter extends PathTokenFilter {
                         if(split.length == 1){
                             if (keys.contains(condition)) {
                                 Object o = jsonProvider.getProperty(current, condition);
-                                if (jsonProvider.isArray(o)) {
+
+                                boolean isArr = jsonProvider.isArray(o);
+                                boolean isEnd = pathToken.isEndToken();
+                                if (isArr && !isEnd) {
                                     for(Object item : jsonProvider.toIterable(o)){
-                                      jsonProvider.setProperty(result, jsonProvider.length(result), item);
+                                        jsonProvider.setProperty(result, jsonProvider.length(result), item);
                                     }
                                 } else {
                                     jsonProvider.setProperty(result, jsonProvider.length(result), jsonProvider.getProperty(current, condition));
@@ -73,7 +82,16 @@ public class FieldFilter extends PathTokenFilter {
 
             Collection<String> keys = jsonProvider.getPropertyKeys(obj);
             if(!keys.contains(condition) && split.length == 1){
-                throw new PathNotFoundException("Path '" + condition + "' not found in the current context:\n" + jsonProvider.toJson(obj));
+
+                if(configuration.getOptions().contains(Option.THROW_ON_MISSING_PROPERTY)){
+                    throw new PathNotFoundException("Path '" + condition + "' not found in the current context:\n" + jsonProvider.toJson(obj));
+                }
+
+                if(pathToken.isEndToken()){
+                    return null;
+                } else {
+                    throw new PathNotFoundException("Path '" + condition + "' not found in the current context:\n" + jsonProvider.toJson(obj));
+                }
             } else {
 
                 if(split.length == 1){
@@ -94,7 +112,9 @@ public class FieldFilter extends PathTokenFilter {
     }
 
 
-    public Object filter(Object obj, JsonProvider jsonProvider) {
+    @Override
+    public Object filter(Object obj, Configuration configuration) {
+        JsonProvider jsonProvider = configuration.getProvider();
         if (jsonProvider.isArray(obj)) {
             return obj;
         } else {
@@ -103,8 +123,8 @@ public class FieldFilter extends PathTokenFilter {
     }
 
     @Override
-    public Object getRef(Object obj, JsonProvider jsonProvider) {
-        return filter(obj, jsonProvider);
+    public Object getRef(Object obj, Configuration configuration) {
+        return filter(obj, configuration);
     }
 
     @Override

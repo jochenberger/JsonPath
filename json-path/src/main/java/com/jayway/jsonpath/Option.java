@@ -15,18 +15,13 @@
 package com.jayway.jsonpath;
 
 /**
- * @author Kalle Stenflo
+ * User: kalle
+ * Date: 8/30/13
+ * Time: 12:05 PM
  */
-public interface Transformer<T> {
-
+public enum Option {
     /**
-     *
-     * @param obj object to transform
-     * @param configuration configuration to use
-     * @return the transformed object
+     * Throw {@link PathNotFoundException} when JsonPath tries to read a property that does not exists.
      */
-    public Object transform(T obj, Configuration configuration);
-
-
-
+    THROW_ON_MISSING_PROPERTY
 }

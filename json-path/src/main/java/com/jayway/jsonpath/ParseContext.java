@@ -12,21 +12,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.jayway.jsonpath.internal;
+package com.jayway.jsonpath;
 
-import java.io.Closeable;
+import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.net.URL;
 
 /**
- * @author Kalle Stenflo
+ * User: kalle
+ * Date: 8/30/13
+ * Time: 12:03 PM
  */
-public abstract class IOUtils {
+public interface ParseContext {
 
-    public static void closeQuietly(Closeable closeable) {
-        try {
-            if (closeable != null) {
-                closeable.close();
-            }
-        } catch (IOException ignore) {}
-    }
+    ReadContext parse(String json);
+    ReadContext parse(Object json);
+    ReadContext parse(InputStream  json);
+    ReadContext parse(File json) throws IOException;
+    ReadContext parse(URL json) throws IOException;
 }

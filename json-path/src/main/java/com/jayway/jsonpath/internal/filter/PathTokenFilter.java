@@ -14,8 +14,8 @@
  */
 package com.jayway.jsonpath.internal.filter;
 
+import com.jayway.jsonpath.Configuration;
 import com.jayway.jsonpath.Filter;
-import com.jayway.jsonpath.spi.JsonProvider;
 
 import java.util.LinkedList;
 
@@ -46,14 +46,25 @@ public abstract class PathTokenFilter {
         return res;
     }
 
-    public Object filter(Object obj, JsonProvider jsonProvider, LinkedList<Filter> filters, boolean inArrayContext){
-        return filter(obj, jsonProvider);
+    public Object filter(Object obj, Configuration configuration, LinkedList<Filter> filters, boolean inArrayContext){
+        return filter(obj, configuration);
     }
 
-    public abstract Object filter(Object obj, JsonProvider jsonProvider);
+    public abstract Object filter(Object obj, Configuration configuration);
 
-    public abstract Object getRef(Object obj, JsonProvider jsonProvider);
+    public abstract Object getRef(Object obj, Configuration configuration);
 
     public abstract boolean isArrayFilter();
 
+    @Override
+    public String toString() {
+
+        if(isArrayFilter()){
+            return getClass().getSimpleName() + " => " + condition;
+        } else {
+            return getClass().getSimpleName() + " => '" + condition + "'";
+        }
+
+
+    }
 }

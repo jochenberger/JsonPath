@@ -14,13 +14,13 @@
  */
 package com.jayway.jsonpath.internal.filter;
 
-import com.jayway.jsonpath.InvalidPathException;
+import com.jayway.jsonpath.Configuration;
 import com.jayway.jsonpath.JsonPath;
+import com.jayway.jsonpath.Option;
 import com.jayway.jsonpath.PathNotFoundException;
 import com.jayway.jsonpath.internal.filter.eval.ExpressionEvaluator;
 import com.jayway.jsonpath.spi.JsonProvider;
 
-import java.util.Collection;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -29,27 +29,44 @@ import java.util.regex.Pattern;
  */
 public class ArrayEvalFilter extends PathTokenFilter {
 
-    private static final Pattern PATTERN = Pattern.compile("\\[\\s?\\?\\(\\s?(@.*?)\\s?([!=<>]+)\\s?(.*?)\\s?\\)\\s?\\]");
+    private static final Pattern CONDITION_STATEMENT_PATTERN = Pattern.compile("\\[\\s?\\?\\(.*?[!=<>]+.*?\\)\\s?]");
+    private static final Pattern PATTERN = Pattern.compile("\\s?(@.*?)\\s?([!=<>]+)\\s?(.*?)\\s?");
 
-    private final ConditionStatement conditionStatement;
+
+
+    private  ConditionStatement[] conditionStatements;
 
     public ArrayEvalFilter(String condition) {
         super(condition);
-        //[?(@.isbn == 10)]
-        this.conditionStatement = createConditionStatement(condition);
+
+        // [?(@.name == 'Luke Skywalker' && @.occupation == 'Farm boy')]
+        // [?(@.name == 'Luke Skywalker')]
+
+        condition = condition.trim();
+        condition = condition.substring(3, condition.length()-2);
+
+        String[] split = condition.split("&&");
+
+        conditionStatements = new ConditionStatement[split.length];
+        for(int i = 0; i < split.length; i++){
+            conditionStatements[i] = createConditionStatement(split[i]);
+        }
     }
 
+
+
     @Override
-    public Object filter(Object obj, JsonProvider jsonProvider) {
+    public Object filter(Object obj, Configuration configuration) {
+        JsonProvider jsonProvider = configuration.getProvider();
         Iterable<Object> src = null;
         try {
             src = jsonProvider.toIterable(obj);
         } catch (ClassCastException e){
-            throw new InvalidPathException("The path fragment '" + this.condition + "' can not be applied to a JSON object only a JSON array.", e);
+            throw new PathNotFoundException("The path fragment '" + this.condition + "' can not be applied to a JSON object only a JSON array.", e);
         }
         Object result = jsonProvider.createArray();
         for (Object item : src) {
-            if (isMatch(item, conditionStatement, jsonProvider)) {
+            if (isMatch(item, configuration, conditionStatements)) {
                 jsonProvider.setProperty(result, jsonProvider.length(result), item);
             }
         }
@@ -57,7 +74,7 @@ public class ArrayEvalFilter extends PathTokenFilter {
     }
 
     @Override
-    public Object getRef(Object obj, JsonProvider jsonProvider) {
+    public Object getRef(Object obj, Configuration configuration) {
         throw new UnsupportedOperationException("");
     }
 
@@ -66,10 +83,16 @@ public class ArrayEvalFilter extends PathTokenFilter {
         return true;
     }
 
-    private boolean isMatch(Object check, ConditionStatement conditionStatement, JsonProvider jsonProvider) {
+    private boolean isMatch(Object check, Configuration configuration, ConditionStatement... conditionStatements) {
         try {
-            Object value = conditionStatement.path.read(check);
-            return ExpressionEvaluator.eval(value, conditionStatement.getOperator(), conditionStatement.getExpected());
+            for (ConditionStatement conditionStatement : conditionStatements) {
+                Object value = conditionStatement.path.read(check, configuration.options(Option.THROW_ON_MISSING_PROPERTY));
+                boolean match =  ExpressionEvaluator.eval(value, conditionStatement.getOperator(), conditionStatement.getExpected());
+                if(!match){
+                    return false;
+                }
+            }
+            return true;
         } catch (PathNotFoundException e){
             return false;
         } catch (RuntimeException e){
@@ -78,30 +101,36 @@ public class ArrayEvalFilter extends PathTokenFilter {
         }
     }
 
-    static ConditionStatement createConditionStatement(String str) {
-        Matcher matcher = PATTERN.matcher(str);
+    static boolean isConditionStatement(String condition) {
+        return CONDITION_STATEMENT_PATTERN.matcher(condition).matches();
+    }
+
+    static ConditionStatement createConditionStatement(String condition) {
+        Matcher matcher = PATTERN.matcher(condition);
         if (matcher.matches()) {
             String property = matcher.group(1).trim();
             String operator = matcher.group(2).trim();
             String expected = matcher.group(3).trim();
 
-            return new ConditionStatement(property, operator, expected);
+            return new ConditionStatement(condition, property, operator, expected);
         } else {
-            throw new InvalidPathException("Invalid match " + str);
+            return null;
         }
     }
 
     static class ConditionStatement {
+        private final String condition;
         private final String field;
         private final String operator;
         private final String expected;
         private final JsonPath path;
 
 
-        ConditionStatement(String field, String operator, String expected) {
+        ConditionStatement(String condition, String field, String operator, String expected) {
+            this.condition = condition;
             this.field = field;
             this.operator = operator;
-            
+
 
             if(expected.startsWith("'")){
                 this.expected = trim(expected, 1, 1);
@@ -114,7 +143,13 @@ public class ArrayEvalFilter extends PathTokenFilter {
             } else {
                 this.path = JsonPath.compile(this.field.replace("@", "$"));
             }
+        }
+        ConditionStatement(String field, String operator, String expected) {
+            this(null, field, operator, expected);
+        }
 
+        String getCondition() {
+            return condition;
         }
 
         public JsonPath getJsonPath() {
