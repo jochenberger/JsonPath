@@ -8,11 +8,6 @@ import java.io.InputStream;
 import static com.jayway.jsonassert.JsonAssert.*;
 import static org.hamcrest.Matchers.*;
 
-/**
- * User: kalle stenflo
- * Date: 1/21/11
- * Time: 4:04 PM
- */
 public class JsonAssertTest {
 
     public final static String JSON =
@@ -49,7 +44,10 @@ public class JsonAssertTest {
                     "  }\n" +
                     "}";
 
-
+    @Test
+    public void invalid_path() throws Exception {
+        with(JSON).assertThat("$.store.book[*].fooBar", collectionWithSize(equalTo(4)));
+    }
 
     @Test(expected = AssertionError.class)
     public void failed_error_message() throws Exception {
@@ -57,20 +55,20 @@ public class JsonAssertTest {
     }
 
     @Test
-    @Ignore //TODO: finalize behaviour
+    //@Ignore //TODO: finalize behaviour
     public void links_document() throws Exception {
 
         with(getResourceAsStream("links.json")).assertEquals("count", 2)
-                .assertThat("links.gc:this.href", endsWith("?pageNumber=1&pageSize=2"))
-                .assertNotDefined("links.gc:prev")
-                .assertNotDefined("links.gc:next")
+                .assertThat("links['gc:this']href", endsWith("?pageNumber=1&pageSize=2"))
+                .assertNotDefined("links['gc:prev']")
+                .assertNotDefined("links['gc:next']")
                 .assertThat("rows", collectionWithSize(equalTo(2)));
 
     }
 
 
     @Test
-    @Ignore //TODO: finalize behaviour
+    //@Ignore //TODO: finalize behaviour
     public void a_document_can_be_expected_not_to_contain_a_path() throws Exception {
         with(JSON).assertNotDefined("$.store.bicycle.cool");
     }
@@ -112,7 +110,7 @@ public class JsonAssertTest {
         with(JSON).assertThat("$.store.book[0]", hasEntry("category", "reference"))
                 .assertThat("$.store.book[0]", hasEntry("title", "Sayings of the Century"))
                 .and()
-                .assertThat("$..book[0]", hasEntry("category", "reference"))
+                .assertThat("$..book[0]", is(collectionWithSize(equalTo(1))))
                 .and()
                 .assertThat("$.store.book[0]", mapContainingKey(equalTo("category")))
                 .and()
@@ -121,7 +119,7 @@ public class JsonAssertTest {
         with(JSON).assertThat("$.['store'].['book'][0]", hasEntry("category", "reference"))
                 .assertThat("$.['store'].['book'][0]", hasEntry("title", "Sayings of the Century"))
                 .and()
-                .assertThat("$..['book'][0]", hasEntry("category", "reference"))
+                .assertThat("$..['book'][0]", is(collectionWithSize(equalTo(1))))
                 .and()
                 .assertThat("$.['store'].['book'][0]", mapContainingKey(equalTo("category")))
                 .and()
@@ -150,15 +148,22 @@ public class JsonAssertTest {
     }
     */
 
-    @Test
-    public void invalid_path() throws Exception {
-        with(JSON).assertThat("$.store.book[*].fooBar", emptyCollection());
-    }
+
 
     @Test
     public void path_including_wildcard_path_followed_by_another_path_concatenates_results_to_list() throws Exception {
         with(getResourceAsStream("lotto.json")).assertThat("lotto.winners[*].winnerId", hasItems(23, 54));
     }
+
+    @Test
+    public void testNotDefined() throws Exception {
+        JsonAsserter asserter = JsonAssert.with("{\"foo\":\"bar\"}");
+        asserter.assertEquals("$.foo", "bar"); // pass
+        asserter.assertEquals("$foo", "bar"); // pass
+        asserter.assertNotDefined("$.xxx"); // fail but should be pass
+        asserter.assertNotDefined("$xxx"); // fail  but should be pass
+    }
+
 
 
     private InputStream getResourceAsStream(String resourceName) {

@@ -16,26 +16,20 @@ package com.jayway.jsonpath;
 
 
 import com.jayway.jsonpath.internal.JsonReader;
-import com.jayway.jsonpath.internal.PathToken;
-import com.jayway.jsonpath.internal.PathTokenizer;
 import com.jayway.jsonpath.internal.Utils;
-import com.jayway.jsonpath.internal.filter.PathTokenFilter;
-import com.jayway.jsonpath.spi.HttpProviderFactory;
-import com.jayway.jsonpath.spi.JsonProvider;
-import com.jayway.jsonpath.spi.JsonProviderFactory;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.jayway.jsonpath.internal.spi.compiler.PathCompiler;
+import com.jayway.jsonpath.spi.compiler.Path;
+import com.jayway.jsonpath.spi.http.HttpProviderFactory;
+import com.jayway.jsonpath.spi.json.JsonProvider;
+import com.jayway.jsonpath.spi.json.JsonProviderFactory;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
-import java.util.LinkedList;
-import java.util.regex.Pattern;
 
 import static com.jayway.jsonpath.internal.Utils.*;
-import static java.util.Arrays.asList;
 
 /**
  * <p/>
@@ -95,51 +89,15 @@ import static java.util.Arrays.asList;
  * <code>
  * String author = JsonPath.read(json, "$.store.book[1].author")
  * </code>
- *
- * @author Kalle Stenflo
  */
 public class JsonPath {
 
-    private static final Logger LOG = LoggerFactory.getLogger(JsonPath.class.getName());
-
-    private static Pattern DEFINITE_PATH_PATTERN = Pattern.compile(".*(\\.\\.|\\*|\\[[\\\\/]|\\?|,|:\\s?]|\\[\\s?:|>|\\(|<|=|\\+).*");
-
-
-
-    private PathTokenizer tokenizer;
-    private LinkedList<Filter> filters;
+    private final Path path;
 
     private JsonPath(String jsonPath, Filter[] filters) {
-
         notNull(jsonPath, "path can not be null");
-        jsonPath = jsonPath.trim();
-        notEmpty(jsonPath, "path can not be empty");
-
-
-        int filterCountInPath = Utils.countMatches(jsonPath, "[?]");
-        isTrue(filterCountInPath == filters.length, "Filters in path ([?]) does not match provided filters.");
-
-        this.tokenizer = new PathTokenizer(jsonPath);
-
-        if(LOG.isDebugEnabled()){
-            LOG.debug("New JsonPath:\n{}", this.tokenizer.toString());
-        }
-
-        this.filters = new LinkedList<Filter>();
-        this.filters.addAll(asList(filters));
-
+        this.path = PathCompiler.tokenize(jsonPath, filters);
     }
-
-    PathTokenizer getTokenizer() {
-        return this.tokenizer;
-    }
-
-
-    public JsonPath copy() {
-        Filter[] filterCopy = filters.isEmpty()?new Filter[0]:new Filter[filters.size()];
-        return new JsonPath(tokenizer.getPath(), filters.toArray(filterCopy));
-    }
-
 
     /**
      * Returns the string representation of this JsonPath
@@ -147,33 +105,14 @@ public class JsonPath {
      * @return path as String
      */
     public String getPath() {
-        return this.tokenizer.getPath();
+        return this.path.toString();
     }
 
     /**
-     * Checks if a path points to a single item or if it potentially returns multiple items
-     * <p/>
-     * a path is considered <strong>not</strong> definite if it contains a scan fragment ".."
-     * or an array position fragment that is not based on a single index
-     * <p/>
-     * <p/>
-     * definite path examples are:
-     * <p/>
-     * $store.book
-     * $store.book[1].title
-     * <p/>
-     * not definite path examples are:
-     * <p/>
-     * $..book
-     * $.store.book[1,2]
-     * $.store.book[?(@.category = 'fiction')]
-     *
-     * @return true if path is definite (points to single item)
+     * @see JsonPath#isDefinite()
      */
     public static boolean isPathDefinite(String path) {
-        String preparedPath = path.replaceAll("\"[^\"\\\\\\n\r]*\"", "");
-
-        return !DEFINITE_PATH_PATTERN.matcher(preparedPath).matches();
+        return compile(path).isDefinite();
     }
 
 
@@ -192,13 +131,14 @@ public class JsonPath {
      * not definite path examples are:
      * <p/>
      * $..book
+     * $.store.book[*]
      * $.store.book[1,2]
      * $.store.book[?(@.category = 'fiction')]
      *
      * @return true if path is definite (points to single item)
      */
-    public boolean isPathDefinite() {
-        return JsonPath.isPathDefinite(getPath());
+    public boolean isDefinite() {
+        return path.isDefinite();
     }
 
     /**
@@ -208,7 +148,7 @@ public class JsonPath {
      *
      * @param jsonObject a container Object
      * @param <T>        expected return type
-     * @return list of objects matched by the given path
+     * @return object(s) matched by the given path
      */
     @SuppressWarnings({"unchecked"})
     public <T> T read(Object jsonObject) {
@@ -220,50 +160,47 @@ public class JsonPath {
      * Note that the document must be identified as either a List or Map by
      * the {@link JsonProvider}
      *
-     * @param jsonObject   a container Object
+     * @param jsonObject    a container Object
      * @param configuration configuration to use
-     * @param <T>          expected return type
-     * @return list of objects matched by the given path
+     * @param <T>           expected return type
+     * @return object(s) matched by the given path
      */
     public <T> T read(Object jsonObject, Configuration configuration) {
-        notNull(jsonObject, "json can not be null");
-        notNull(configuration, "configuration can not be null");
+        boolean optAsPathList = configuration.containsOption(Option.AS_PATH_LIST);
+        boolean optAlwaysReturnList = configuration.containsOption(Option.ALWAYS_RETURN_LIST);
+        boolean optSuppressExceptions = configuration.containsOption(Option.SUPPRESS_EXCEPTIONS);
+        boolean optThrowOnMissingProperty = configuration.containsOption(Option.THROW_ON_MISSING_PROPERTY);
 
-        if (this.getPath().equals("$")) {
-            //This path only references the whole object. No need to do any work here...
-            return (T) jsonObject;
-        }
-
-        if (!configuration.getProvider().isContainer(jsonObject)) {
-            throw new IllegalArgumentException("Invalid container object");
-        }
-
-        LinkedList<Filter> contextFilters = new LinkedList<Filter>(filters);
-
-
-        Object result = jsonObject;
-
-        boolean inArrayContext = false;
-
-        for (PathToken pathToken : tokenizer) {
-            PathTokenFilter filter = pathToken.getFilter();
-
-            if(LOG.isDebugEnabled()){
-                LOG.debug("Applying filter: " + filter  + " to " + result);
+        try {
+            if(optAsPathList){
+                return  (T)path.evaluate(jsonObject, configuration).getPath();
+            } else {
+                Object res = path.evaluate(jsonObject, configuration).getValue();
+                if(optAlwaysReturnList && path.isDefinite()){
+                    Object array = configuration.getProvider().createArray();
+                    configuration.getProvider().setProperty(array, 0, res);
+                    return (T)array;
+                } else {
+                    return (T)res;
+                }
             }
-
-            result = filter.filter(result, configuration, contextFilters, inArrayContext);
-
-            if(result == null && !pathToken.isEndToken()){
-                throw new PathNotFoundException("Path token: '" + pathToken.getFragment() + "' not found.");
-            }
-
-            if (!inArrayContext) {
-                inArrayContext = filter.isArrayFilter();
+        } catch (RuntimeException e){
+            if(optThrowOnMissingProperty || !optSuppressExceptions){
+                throw e;
             }
         }
-        return (T) result;
+        if(optAsPathList){
+            return (T)configuration.getProvider().createArray();
+        } else {
+            if(optAlwaysReturnList){
+                return (T)configuration.getProvider().createArray();
+            } else {
+                return (T)(path.isDefinite() ? null : configuration.getProvider().createArray());
+            }
+        }
+
     }
+
 
     /**
      * Applies this JsonPath to the provided json string
@@ -280,9 +217,9 @@ public class JsonPath {
     /**
      * Applies this JsonPath to the provided json string
      *
-     * @param json         a json string
+     * @param json          a json string
      * @param configuration configuration to use
-     * @param <T>          expected return type
+     * @param <T>           expected return type
      * @return list of objects matched by the given path
      */
     @SuppressWarnings({"unchecked"})
@@ -309,9 +246,9 @@ public class JsonPath {
     /**
      * Applies this JsonPath to the provided json URL
      *
-     * @param jsonURL      url to read from
+     * @param jsonURL       url to read from
      * @param configuration configuration to use
-     * @param <T>          expected return type
+     * @param <T>           expected return type
      * @return list of objects matched by the given path
      * @throws IOException
      */
@@ -346,9 +283,9 @@ public class JsonPath {
     /**
      * Applies this JsonPath to the provided json file
      *
-     * @param jsonFile     file to read from
+     * @param jsonFile      file to read from
      * @param configuration configuration to use
-     * @param <T>          expected return type
+     * @param <T>           expected return type
      * @return list of objects matched by the given path
      * @throws IOException
      */
@@ -390,7 +327,7 @@ public class JsonPath {
      * Applies this JsonPath to the provided json input stream
      *
      * @param jsonInputStream input stream to read from
-     * @param configuration configuration to use
+     * @param configuration   configuration to use
      * @param <T>             expected return type
      * @return list of objects matched by the given path
      * @throws IOException
@@ -444,7 +381,8 @@ public class JsonPath {
      */
     @SuppressWarnings({"unchecked"})
     public static <T> T read(Object json, String jsonPath, Filter... filters) {
-        return compile(jsonPath, filters).read(json);
+        //return compile(jsonPath, filters).read(json);
+        return new JsonReader().parse(json).read(jsonPath, filters);
     }
 
 
@@ -518,7 +456,7 @@ public class JsonPath {
      * @param configuration configuration to use when parsing JSON
      * @return a parsing context based on given configuration
      */
-    public static ParseContext using(Configuration configuration){
+    public static ParseContext using(Configuration configuration) {
         return new JsonReader(configuration);
     }
 
@@ -528,7 +466,7 @@ public class JsonPath {
      * @param provider provider to use when parsing JSON
      * @return a parsing context based on given provider
      */
-    public static ParseContext using(JsonProvider provider){
+    public static ParseContext using(JsonProvider provider) {
         return new JsonReader(Configuration.builder().jsonProvider(provider).build());
     }
 
@@ -605,7 +543,7 @@ public class JsonPath {
      * @param json input
      * @return a read context
      */
-    public static ReadContext parse(String json, Configuration configuration){
+    public static ReadContext parse(String json, Configuration configuration) {
         return new JsonReader(configuration).parse(json);
     }
 

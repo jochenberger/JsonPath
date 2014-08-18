@@ -1,8 +1,11 @@
 package com.jayway.jsonpath.internal;
 
-import com.jayway.jsonpath.*;
-import com.jayway.jsonpath.spi.HttpProviderFactory;
-import com.jayway.jsonpath.spi.JsonProvider;
+import com.jayway.jsonpath.Configuration;
+import com.jayway.jsonpath.Filter;
+import com.jayway.jsonpath.JsonPath;
+import com.jayway.jsonpath.ParseContext;
+import com.jayway.jsonpath.ReadContext;
+import com.jayway.jsonpath.spi.http.HttpProviderFactory;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -10,13 +13,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 
-import static com.jayway.jsonpath.internal.Utils.*;
+import static com.jayway.jsonpath.internal.Utils.notEmpty;
+import static com.jayway.jsonpath.internal.Utils.notNull;
 
-/**
- * User: kalle
- * Date: 8/30/13
- * Time: 12:17 PM
- */
 public class JsonReader implements ParseContext, ReadContext {
 
     private final Configuration configuration;
@@ -24,10 +23,6 @@ public class JsonReader implements ParseContext, ReadContext {
 
     public JsonReader() {
         this(Configuration.defaultConfiguration());
-    }
-
-    public JsonReader(JsonProvider jsonProvider) {
-        this(Configuration.builder().jsonProvider(jsonProvider).build());
     }
 
     public JsonReader(Configuration configuration) {

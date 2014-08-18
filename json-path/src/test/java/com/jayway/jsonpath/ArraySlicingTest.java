@@ -9,9 +9,6 @@ import static junit.framework.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 
 /**
- * User: kalle
- * Date: 8/20/13
- * Time: 9:22 AM
  *
  * If you have a list
  * nums = [1, 3, 5, 7, 8, 13, 20]
@@ -76,8 +73,8 @@ public class ArraySlicingTest {
 
     @Test
     public void get_from_tail(){
-        Integer result = JsonPath.read(JSON_ARRAY, "$[3:]");
-        assertEquals(8, result.intValue());
+        List<Integer> result  = JsonPath.read(JSON_ARRAY, "$[3:]");
+        assertThat(result, Matchers.contains(7, 8, 13, 20));
     }
 
     @Test

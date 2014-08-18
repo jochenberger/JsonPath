@@ -60,7 +60,7 @@
         <junit.version>4.10</junit.version>
         <commons-io.version>2.4</commons-io.version>
         <hamcrest.version>1.3</hamcrest.version>
-        <jackson.version>1.9.11</jackson.version>
+        <jackson.version>2.4.0</jackson.version>
         <json-smart.version>1.2</json-smart.version>
     </properties>
     <scm>
@@ -79,45 +79,19 @@
     <modules>
         <module>json-path</module>
         <module>json-path-assert</module>
+        <module>json-path-web-test</module>
     </modules>
 
     <build>
         <pluginManagement>
             <plugins>
-                <!--
-				<plugin>
-					<groupId>org.eclipse.m2e</groupId>
-					<artifactId>lifecycle-mapping</artifactId>
-					<version>1.0.0</version>
-					<configuration>
-						<lifecycleMappingMetadata>
-							<pluginExecutions>
-								<pluginExecution>
-									<pluginExecutionFilter>
-										<groupId>org.apache.maven.plugins</groupId>
-						                <artifactId>maven-dependency-plugin</artifactId>
-										<versionRange>[2.1,)</versionRange>
-										<goals>
-											<goal>copy-dependencies</goal>
-											<goal>unpack</goal>
-										</goals>
-									</pluginExecutionFilter>
-									<action>
-										<ignore />
-									</action>
-								</pluginExecution>
-							</pluginExecutions>
-						</lifecycleMappingMetadata>
-					</configuration>
-				</plugin>
-				-->
             </plugins>
         </pluginManagement>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.0</version>
+                <version>3.1</version>
                 <configuration>
                     <source>1.6</source>
                     <target>1.6</target>
@@ -203,9 +177,20 @@
             </dependency>
 
             <dependency>
-                <groupId>org.codehaus.jackson</groupId>
-                <artifactId>jackson-mapper-asl</artifactId>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-databind</artifactId>
                 <version>${jackson.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.fastjson</groupId>
+                <artifactId>boon</artifactId>
+                <version>0.13</version>
+            </dependency>
+            <dependency>
+                <groupId>org.assertj</groupId>
+                <artifactId>assertj-core</artifactId>
+                <version>1.6.0</version>
+                <scope>test</scope>
             </dependency>
 
             <dependency>
@@ -264,6 +249,13 @@
         Global test dependencies
         ==================================
         -->
+
+        <dependency>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+
         <dependency>
             <groupId>commons-io</groupId>
             <artifactId>commons-io</artifactId>

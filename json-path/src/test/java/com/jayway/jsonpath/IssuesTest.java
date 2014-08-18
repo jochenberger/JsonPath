@@ -1,28 +1,26 @@
 package com.jayway.jsonpath;
 
 import com.jayway.jsonpath.internal.Utils;
-import net.minidev.json.JSONObject;
-
+import com.jayway.jsonpath.spi.json.JsonProvider;
+import com.jayway.jsonpath.spi.json.JsonProviderFactory;
+import org.assertj.core.api.Assertions;
+import org.assertj.core.data.MapEntry;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import java.io.InputStream;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-import static junit.framework.Assert.assertEquals;
-import static junit.framework.Assert.assertNull;
-import static junit.framework.Assert.assertTrue;
+import static junit.framework.Assert.*;
+import static org.assertj.core.api.Assertions.failBecauseExceptionWasNotThrown;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
-/**
- * Created by IntelliJ IDEA.
- * User: kallestenflo
- * Date: 2/29/12
- * Time: 8:42 AM
- */
 public class IssuesTest {
 
+    private static final JsonProvider jp = JsonProviderFactory.createProvider();
 
     @Test
     public void issue_36() {
@@ -37,20 +35,21 @@ public class IssuesTest {
         Object o1 = JsonPath.read(json, "$.arrayOfObjectsAndArrays..k ");
         Object o2 = JsonPath.read(json, "$.arrayOfObjects..k ");
 
-        assertEquals("[[\"json\"],[\"path\"],[\"is\"],[\"cool\"]]", o1.toString());
-        assertEquals("[\"json\",\"path\",\"is\",\"cool\"]", o2.toString());
+        assertEquals("[[\"json\"],[\"path\"],[\"is\"],[\"cool\"]]", jp.toJson(o1));
+        assertEquals("[\"json\",\"path\",\"is\",\"cool\"]", jp.toJson(o2));
+    }
+
+    @Test
+    public void issue_11() throws Exception {
+        String json = "{ \"foo\" : [] }";
+        List<String> result = JsonPath.read(json, "$.foo[?(@.rel == 'item')][0].uri");
+        assertTrue(result.isEmpty());
     }
 
     @Test(expected = PathNotFoundException.class)
-    public void issue_11() throws Exception {
+    public void issue_11b() throws Exception {
         String json = "{ \"foo\" : [] }";
-        List<String> result = JsonPath.read(json, "$.foo[?(@.rel= 'item')][0].uri");
-
-        System.out.println(JsonPath.compile("$.foo[?(@.rel= 'item')][0].uri").isPathDefinite());
-        System.out.println(JsonPath.compile("$.foo[?(@.rel= 'item')][0]").isPathDefinite());
-        System.out.println(JsonPath.compile("$.foo[?(@.rel= 'item')]").isPathDefinite());
-
-        assertTrue(result.isEmpty());
+        JsonPath.read(json, "$.foo[0].uri");
     }
 
     @Test
@@ -123,6 +122,71 @@ public class IssuesTest {
     }
 
     @Test
+    public void issue_37() {
+        String json = "[\n" +
+                "    {\n" +
+                "        \"id\": \"9\",\n" +
+                "        \"sku\": \"SKU-001\",\n" +
+                "        \"compatible\": false\n" +
+                "    },\n" +
+                "    {\n" +
+                "        \"id\": \"13\",\n" +
+                "        \"sku\": \"SKU-005\",\n" +
+                "        \"compatible\": true\n" +
+                "    },\n" +
+                "    {\n" +
+                "        \"id\": \"11\",\n" +
+                "        \"sku\": \"SKU-003\",\n" +
+                "        \"compatible\": true\n" +
+                "    }\n" +
+                "]";
+
+        List<Double> result = JsonPath.read(json, "$.[?(@.compatible == true)].sku");
+
+        System.out.println(result);
+
+        //assertThat(result.getValue(0), is(new Double(10.1)));
+        //assertThat(result.getValue(1), is(new Double(21.0)));
+    }
+
+
+    @Test
+    public void issue_38() {
+        String json = "{\n" +
+                "   \"datapoints\":[\n" +
+                "      [\n" +
+                "         10.1,\n" +
+                "         13.0\n" +
+                "      ],\n" +
+                "      [\n" +
+                "         21.0,\n" +
+                "         22.0\n" +
+                "      ]\n" +
+                "   ]\n" +
+                "}";
+
+        List<Double> result = JsonPath.read(json, "$.datapoints.[*].[0]");
+
+        assertThat(result.get(0), is(new Double(10.1)));
+        assertThat(result.get(1), is(new Double(21.0)));
+    }
+
+    @Test
+    public void issue_39() {
+        String json = "{\n" +
+                "    \"obj1\": {\n" +
+                "        \"arr\": [\"1\", \"2\"]\n" +
+                "    },\n" +
+                "    \"obj2\": {\n" +
+                "       \"arr\": [\"3\", \"4\"]\n" +
+                "    }\n" +
+                "}\n";
+
+        List<String> result = JsonPath.read(json, "$..arr");
+        assertThat(result.size(), is(2));
+    }
+
+    @Test
     public void issue_28_int() {
         String json = "{\"contents\": [1,2,3]}";
 
@@ -154,7 +218,8 @@ public class IssuesTest {
     }
     @Test
     public void issue_22c() throws Exception {
-        Configuration configuration = Configuration.builder().build();
+        //Configuration configuration = Configuration.builder().build();
+        Configuration configuration = Configuration.builder().options(Option.SUPPRESS_EXCEPTIONS).build();
 
         String json = "{\"a\":{\"b\":1,\"c\":2}}";
         assertNull(JsonPath.parse(json, configuration).read("a.d"));
@@ -179,9 +244,10 @@ public class IssuesTest {
     public void issue_29_a() throws Exception {
         String json = "{\"list\": [ { \"a\":\"atext\", \"b.b-a\":\"batext2\", \"b\":{ \"b-a\":\"batext\", \"b-b\":\"bbtext\" } }, { \"a\":\"atext2\", \"b\":{ \"b-a\":\"batext2\", \"b-b\":\"bbtext2\" } } ] }";
 
-        List<JSONObject> result = JsonPath.read(json, "$.list[?(@['b.b-a']=='batext2')]");
+        List<Map<String, Object>> result = JsonPath.read(json, "$.list[?(@['b.b-a']=='batext2')]");
         assertEquals(1, result.size());
-        assertEquals("atext", result.get(0).get("a"));
+        Object a = result.get(0).get("a");
+        assertEquals("atext", a);
 
         result = JsonPath.read(json, "$.list[?(@.b.b-a=='batext2')]");
         assertEquals(1, result.size());
@@ -243,4 +309,106 @@ public class IssuesTest {
 
     }
 
+    @Test
+    public void array_root() {
+        String json = "[\n" +
+                "    {\n" +
+                "        \"a\": 1,\n" +
+                "        \"b\": 2,\n" +
+                "        \"c\": 3\n" +
+                "    }\n" +
+                "]";
+
+
+        assertEquals(1, JsonPath.read(json, "$[0].a"));
+    }
+
+    @Test(expected = PathNotFoundException.class)
+    public void a_test() {
+
+        String json ="{\n" +
+                "  \"success\": true,\n" +
+                "  \"data\": {\n" +
+                "    \"user\": 3,\n" +
+                "    \"own\": null,\n" +
+                "    \"passes\": null,\n" +
+                "    \"completed\": null\n" +
+                "  },\n" +
+                "  \"version\": 1371160528774\n" +
+                "}";
+
+        Object read = JsonPath.read(json, "$.data.passes[0].id");
+    }
+
+
+    @Test
+    public void issue_42() {
+
+        String json = "{" +
+                "        \"list\": [{" +
+                "            \"name\": \"My (String)\" " +
+                "        }] " +
+                "    }";
+
+        List<Map<String, String>> result = JsonPath.read(json, "$.list[?(@.name == 'My (String)')]");
+
+        Assertions.assertThat(result).containsExactly(Collections.singletonMap("name", "My (String)"));
+    }
+
+    @Test
+    public void issue_43() {
+
+        String json = "{\"test\":null}";
+
+        Assertions.assertThat(JsonPath.read(json, "test")).isNull();
+
+        Assertions.assertThat(JsonPath.using(Configuration.defaultConfiguration().options(Option.SUPPRESS_EXCEPTIONS)).parse(json).read("nonExistingProperty")).isNull();
+
+        try {
+            JsonPath.read(json, "nonExistingProperty");
+
+            failBecauseExceptionWasNotThrown(PathNotFoundException.class);
+        } catch (PathNotFoundException e){
+            Assertions.assertThat(e).hasMessage("No results for path: $['nonExistingProperty']");
+        }
+
+
+        try {
+            JsonPath.read(json, "nonExisting.property");
+
+            failBecauseExceptionWasNotThrown(PathNotFoundException.class);
+        } catch (PathNotFoundException e){
+            Assertions.assertThat(e).hasMessage("No results for path: $['nonExisting']['property']");
+        }
+
+    }
+
+
+    @Test
+    public void issue_45() {
+        String json = "{\"rootkey\":{\"sub.key\":\"value\"}}";
+
+        Assertions.assertThat(JsonPath.read(json, "rootkey['sub.key']")).isEqualTo("value");
+    }
+
+    @Test
+    public void issue_46() {
+
+
+
+
+        String json = "{\"a\": {}}";
+
+        Configuration configuration = Configuration.defaultConfiguration().options(Option.SUPPRESS_EXCEPTIONS);
+        Assertions.assertThat(JsonPath.using(configuration).parse(json).read("a.x")).isNull();
+
+        try {
+            JsonPath.read(json, "a.x");
+
+            failBecauseExceptionWasNotThrown(PathNotFoundException.class);
+        } catch (PathNotFoundException e){
+            Assertions.assertThat(e).hasMessage("No results for path: $['a']['x']");
+        }
+
+    }
 }

@@ -1,19 +1,8 @@
 package com.jayway.jsonpath;
 
-import com.jayway.jsonpath.internal.Utils;
-import com.jayway.jsonpath.spi.impl.JacksonProvider;
+import com.jayway.jsonpath.internal.spi.json.JacksonProvider;
 import org.junit.Test;
 
-import java.io.Serializable;
-
-import static com.jayway.jsonpath.JsonModel.model;
-
-/**
- * Created by IntelliJ IDEA.
- * User: kallestenflo
- * Date: 11/8/11
- * Time: 10:40 PM
- */
 public class JsonProviderTest {
 
     public final static String ARRAY = "[{\"value\": 1},{\"value\": 2}, {\"value\": 3},{\"value\": 4}]";
@@ -55,16 +44,7 @@ public class JsonProviderTest {
 
 
 
-    @Test
-    public void clone_test() throws Exception {
 
-        Serializable jsonObject = (Serializable) model(DOCUMENT).getJsonObject();
-
-        Object clone = Utils.clone(jsonObject);
-
-        System.out.println(model(clone).toJson());
-
-    }
 
 
     @Test

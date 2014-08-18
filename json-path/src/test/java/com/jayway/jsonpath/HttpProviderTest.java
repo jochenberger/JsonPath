@@ -1,7 +1,8 @@
 package com.jayway.jsonpath;
 
 import com.jayway.jsonpath.internal.Utils;
-import com.jayway.jsonpath.spi.HttpProviderFactory;
+import com.jayway.jsonpath.spi.http.HttpProviderFactory;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -10,13 +11,7 @@ import java.net.URL;
 
 import static junit.framework.Assert.assertEquals;
 
-/**
- * Created by IntelliJ IDEA.
- * User: kallestenflo
- * Date: 3/10/12
- * Time: 8:12 AM
- */
-//@Ignore
+@Ignore
 public class HttpProviderTest {
 
 

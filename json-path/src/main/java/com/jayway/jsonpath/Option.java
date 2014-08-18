@@ -14,14 +14,36 @@
  */
 package com.jayway.jsonpath;
 
-/**
- * User: kalle
- * Date: 8/30/13
- * Time: 12:05 PM
- */
 public enum Option {
+
     /**
      * Throw {@link PathNotFoundException} when JsonPath tries to read a property that does not exists.
      */
-    THROW_ON_MISSING_PROPERTY
+    THROW_ON_MISSING_PROPERTY,
+
+    /**
+     * Makes this implementation more compliant to the Goessner spec. All results are returned as Lists.
+     */
+    ALWAYS_RETURN_LIST,
+
+    /**
+     * Returns a list of path strings representing the path of the evaluation hits
+     */
+    AS_PATH_LIST,
+
+    /**
+     * When multiple properties are queried eg @..['foo', 'bar'] these properties are extracted and put in a new Map.
+     */
+    MERGE_MULTI_PROPS,
+
+    /**
+     * Suppress all exceptions when evaluating path.
+     * <br/>
+     * If an exception is thrown and the option {@link Option#ALWAYS_RETURN_LIST} an empty list is returned.
+     * If an exception is thrown and the option {@link Option#ALWAYS_RETURN_LIST} is not present null is returned.
+     * The option {@link Option#THROW_ON_MISSING_PROPERTY} has precedence over this option.
+     */
+    SUPPRESS_EXCEPTIONS
+
+
 }

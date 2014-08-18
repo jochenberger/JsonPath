@@ -1,19 +1,5 @@
 package com.jayway.jsonpath;
 
-import org.junit.Test;
-
-import java.util.List;
-import java.util.Map;
-
-import static junit.framework.Assert.assertEquals;
-import static junit.framework.Assert.assertTrue;
-
-
-/**
- * User: kalle
- * Date: 8/20/13
- * Time: 8:03 AM
- */
 public class MultiAttributeTest {
 
     public final static String DOCUMENT =
@@ -53,22 +39,6 @@ public class MultiAttributeTest {
                     "}";
 
 
-    @Test
-    public void multiple_attributes_from_array_content(){
-        List<Map<String, Object>> matches = JsonPath.read(DOCUMENT, "$.store.book[*].['category', 'title']");
 
-        assertEquals(4, matches.size());
-        assertTrue(matches.get(1).containsKey("category"));
-        assertTrue(matches.get(1).containsKey("title"));
-        assertEquals(2, matches.get(1).size());
-    }
-
-    @Test
-    public void multiple_attributes_from_single_object(){
-        Map<String, Object> match = JsonPath.read(DOCUMENT, "$.store.bicycle['color', 'display-price']");
-
-        assertTrue(match.containsKey("color"));
-        assertTrue(match.containsKey("display-price"));
-    }
 
 }

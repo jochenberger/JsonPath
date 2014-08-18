@@ -14,11 +14,6 @@
  */
 package com.jayway.jsonpath;
 
-/**
- * User: kalle
- * Date: 8/30/13
- * Time: 12:03 PM
- */
 public interface ReadContext {
 
     /**
@@ -31,7 +26,7 @@ public interface ReadContext {
     /**
      * Reads the given path from this context
      *
-     * @param path path to read
+     * @param path    path to read
      * @param filters filters
      * @param <T>
      * @return result
@@ -46,4 +41,5 @@ public interface ReadContext {
      * @return result
      */
     <T> T read(JsonPath path);
+
 }

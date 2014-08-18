@@ -14,10 +14,7 @@
  */
 package com.jayway.jsonpath;
 
-/**
- * @author Kalle Stenflo
- */
-public class InvalidCriteriaException extends RuntimeException{
+public class InvalidCriteriaException extends RuntimeException {
     public InvalidCriteriaException() {
     }
 
