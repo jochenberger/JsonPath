@@ -14,7 +14,8 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <gatling-jsonpath.version>0.4.0</gatling-jsonpath.version>
-        <boon.version>0.25</boon.version>
+        <boon.version>0.25
+        </boon.version>
     </properties>
 
     <dependencies>
@@ -98,7 +99,7 @@
                 <configuration>
                     <archive>
                         <manifest>
-                            <mainClass>com.jayway.oauth2.example.boot.Main</mainClass>
+                            <mainClass>com.jayway.jsonpath.web.boot.Main</mainClass>
                         </manifest>
                     </archive>
                 </configuration>
