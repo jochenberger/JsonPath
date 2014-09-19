@@ -1,12 +1,6 @@
 package com.jayway.jsonpath;
 
-import com.jayway.jsonpath.internal.spi.converter.DefaultConversionProvider;
-import com.jayway.jsonpath.internal.spi.json.GsonProvider;
-import com.jayway.jsonpath.spi.converter.ConversionProvider;
-import com.jayway.jsonpath.spi.json.JsonProvider;
-
-import java.util.EnumSet;
-import java.util.Set;
+import com.jayway.jsonpath.internal.compiler.PredicateContextImpl;
 
 public class BaseTest {
     /*
@@ -40,6 +34,7 @@ public class BaseTest {
             "   \"boolean-property\" : true, \n" +
             "   \"null-property\" : null, \n" +
             "   \"int-small-property\" : 1, \n" +
+            "   \"max-price\" : 10, \n" +
             "   \"store\" : {\n" +
             "      \"book\" : [\n" +
             "         {\n" +
@@ -83,16 +78,6 @@ public class BaseTest {
             "}";
 
     public Predicate.PredicateContext createPredicateContext(final Object check) {
-        return new Predicate.PredicateContext() {
-            @Override
-            public Object target() {
-                return check;
-            }
-
-            @Override
-            public Configuration configuration() {
-                return Configuration.defaultConfiguration();
-            }
-        };
+        return new PredicateContextImpl(check, check, Configuration.defaultConfiguration());
     }
 }

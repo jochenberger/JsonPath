@@ -8,7 +8,6 @@ import com.jayway.jsonpath.JsonPath;
 import com.jayway.jsonpath.Predicate;
 import com.jayway.jsonpath.internal.spi.json.JsonSmartJsonProvider;
 import com.jayway.jsonpath.spi.json.JsonProvider;
-
 import org.junit.Test;
 
 import java.util.Collections;
@@ -347,7 +346,7 @@ public class FilterTest extends BaseTest {
         Predicate customFilter = new Predicate () {
             @Override
             public boolean apply(PredicateContext ctx) {
-                if (ctx.configuration().jsonProvider().getMapValue(ctx.target(), "name").equals("rootGrandChild_A")) {
+                if (ctx.configuration().jsonProvider().getMapValue(ctx.contextDocument(), "name").equals("rootGrandChild_A")) {
                     return true;
                 }
                 return false;
@@ -370,7 +369,7 @@ public class FilterTest extends BaseTest {
         Predicate customFilter = new Predicate() {
             @Override
             public boolean apply(PredicateContext ctx) {
-                return 1 == (Integer)ctx.target();
+                return 1 == (Integer)ctx.contextDocument();
             }
         };
 
