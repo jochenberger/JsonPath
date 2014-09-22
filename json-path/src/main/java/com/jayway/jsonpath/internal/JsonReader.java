@@ -51,8 +51,14 @@ public class JsonReader implements ParseContext, ReadContext {
 
     @Override
     public ReadContext parse(InputStream json) {
+        return parse(json, "UTF-8");
+    }
+
+    @Override
+    public ReadContext parse(InputStream json, String charset) {
         notNull(json, "json input stream can not be null");
-        this.json = configuration.jsonProvider().parse(json);
+        notNull(json, "charset can not be null");
+        this.json = configuration.jsonProvider().parse(json, charset);
         return this;
     }
 
@@ -114,7 +120,7 @@ public class JsonReader implements ParseContext, ReadContext {
     }
 
     private <T> T convert(Object obj, Class<T> targetType, Configuration configuration){
-        return configuration.conversionProvider().map(obj, targetType, configuration);
+        return configuration.mappingProvider().map(obj, targetType, configuration);
     }
 
 }

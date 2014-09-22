@@ -1,6 +1,8 @@
 package com.jayway.jsonpath;
 
-import com.jayway.jsonpath.internal.compiler.PredicateContextImpl;
+import com.jayway.jsonpath.internal.token.PredicateContextImpl;
+import com.jayway.jsonpath.internal.spi.json.GsonJsonProvider;
+import com.jayway.jsonpath.internal.spi.mapper.GsonMappingProvider;
 
 public class BaseTest {
     /*
@@ -12,7 +14,7 @@ public class BaseTest {
             }
 
             @Override
-            public Set<Option> options() {
+            public Set<Option> setOptions() {
                 return EnumSet.noneOf(Option.class);
             }
 
@@ -24,7 +26,11 @@ public class BaseTest {
     }*/
 
 
-
+    public static final Configuration GSON_CONFIGURATION = Configuration
+            .builder()
+            .mappingProvider(new GsonMappingProvider())
+            .jsonProvider(new GsonJsonProvider())
+            .build();
 
     public static final String JSON_DOCUMENT = "{\n" +
             "   \"string-property\" : \"string-value\", \n" +

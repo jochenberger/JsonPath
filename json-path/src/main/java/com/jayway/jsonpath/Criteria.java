@@ -2,7 +2,7 @@ package com.jayway.jsonpath;
 
 import com.jayway.jsonpath.internal.Path;
 import com.jayway.jsonpath.internal.PathCompiler;
-import com.jayway.jsonpath.internal.compiler.PredicateContextImpl;
+import com.jayway.jsonpath.internal.token.PredicateContextImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -195,7 +195,7 @@ public class Criteria implements Predicate {
             @Override
             boolean eval(Object expected, final Object actual, final PredicateContext ctx) {
                 Predicate exp = (Predicate) expected;
-                return exp.apply(new PredicateContextImpl(actual, ctx.rootDocument(), ctx.configuration()));
+                return exp.apply(new PredicateContextImpl(actual, ctx.root(), ctx.configuration()));
             }
         },
         NOT_EMPTY {
@@ -273,20 +273,20 @@ public class Criteria implements Predicate {
             boolean exists = ((Boolean) expected);
             try {
                 Configuration c = Configuration.builder().jsonProvider(ctx.configuration().jsonProvider()).options().build();
-                path.evaluate(ctx.contextDocument(), ctx.rootDocument(), c).getValue();
+                path.evaluate(ctx.item(), ctx.root(), c).getValue();
                 return exists;
             } catch (PathNotFoundException e) {
                 return !exists;
             }
         } else {
             try {
-                final Object actual = path.evaluate(ctx.contextDocument(), ctx.rootDocument(), ctx.configuration()).getValue();
+                final Object actual = path.evaluate(ctx.item(), ctx.root(), ctx.configuration()).getValue();
 
                 Object expectedVal = expected;
                 if(expected instanceof Path){
                     Path expectedPath = (Path) expected;
-                    Object doc = expectedPath.isRootPath()?ctx.rootDocument():ctx.contextDocument();
-                    expectedVal = expectedPath.evaluate(doc, ctx.rootDocument(), ctx.configuration()).getValue();
+                    Object doc = expectedPath.isRootPath()?ctx.root():ctx.item();
+                    expectedVal = expectedPath.evaluate(doc, ctx.root(), ctx.configuration()).getValue();
                 }
 
                 return criteriaType.eval(expectedVal, actual, ctx);
@@ -566,6 +566,38 @@ public class Criteria implements Predicate {
         return this;
     }
 
+    /**
+     * Creates a new criteria
+     * @param path path to evaluate in criteria
+     * @param operator operator
+     * @param expected expected value
+     * @return a new Criteria
+     */
+    public static Criteria create(String path, String operator, String expected) {
+        if (!expected.isEmpty() && expected.charAt(0) == '\'' && expected.charAt(expected.length() - 1) == '\'') {
+            expected = expected.substring(1, expected.length() - 1);
+        }
+
+        Path p = PathCompiler.compile(path);
+
+        if (("$".equals(path) || "@".equals(path) )&& (operator == null || operator.isEmpty()) && (expected == null || expected.isEmpty())) {
+            return new Criteria(p, CriteriaType.NE, null);
+        } else if (operator.isEmpty()) {
+            return Criteria.where(path).exists(true);
+        } else {
+            if(expected.startsWith("$") || expected.startsWith("@")){
+                Path compile = PathCompiler.compile(expected);
+                if(!compile.isDefinite()){
+                    throw new InvalidPathException("the predicate path: " + expected + " is not definite");
+                }
+                return new Criteria(p, CriteriaType.parse(operator), compile);
+            } else {
+                return new Criteria(p, CriteriaType.parse(operator), expected);
+            }
+
+        }
+    }
+
     private static int safeCompare(Object expected, Object providerParsed) throws ValueCompareException {
 
         if(expected == providerParsed){
@@ -605,30 +637,7 @@ public class Criteria implements Predicate {
         return (o == null || ((o instanceof String) && ("null".equals(o))));
     }
 
-    public static Criteria create(String path, String operator, String expected) {
-        if (!expected.isEmpty() && expected.charAt(0) == '\'' && expected.charAt(expected.length() - 1) == '\'') {
-            expected = expected.substring(1, expected.length() - 1);
-        }
 
-        Path p = PathCompiler.compile(path);
-
-        if (("$".equals(path) || "@".equals(path) )&& (operator == null || operator.isEmpty()) && (expected == null || expected.isEmpty())) {
-            return new Criteria(p, CriteriaType.NE, null);
-        } else if (operator.isEmpty()) {
-            return Criteria.where(path).exists(true);
-        } else {
-            if(expected.startsWith("$") || expected.startsWith("@")){
-                Path compile = PathCompiler.compile(expected);
-                if(!compile.isDefinite()){
-                    throw new InvalidPathException("the predicate path: " + expected + " is not definite");
-                }
-                return new Criteria(p, CriteriaType.parse(operator), compile);
-            } else {
-                return new Criteria(p, CriteriaType.parse(operator), expected);
-            }
-
-        }
-    }
 
     @Override
     public String toString() {
