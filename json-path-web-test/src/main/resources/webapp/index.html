@@ -22,7 +22,7 @@
                     <div class="form-group">
                         <select id="selTemplates" name="template" class="form-control">
                             <option value="blank"></option>
-                            <option value="goessner.json">Goessner examle</option>
+                            <option value="goessner.json" selected>Goessner examle</option>
                             <option value="twitter.json">Twitter API</option>
                             <option value="webxml.json">Webapp</option>
                             <option value="20k.json">20k</option>
@@ -30,7 +30,45 @@
                     </div>
 
                     <div class="form-group">
-                        <textarea id="txtJson" name="json" rows="15" class="form-control" placeholder="Select a template above or enter JSON"></textarea>
+                        <textarea id="txtJson" name="json" rows="15" class="form-control" placeholder="Select a template above or enter JSON">
+{
+    "store": {
+        "book": [
+            {
+                "category": "reference",
+                "author": "Nigel Rees",
+                "title": "Sayings of the Century",
+                "price": 8.95
+            },
+            {
+                "category": "fiction",
+                "author": "Evelyn Waugh",
+                "title": "Sword of Honour",
+                "price": 12.99
+            },
+            {
+                "category": "fiction",
+                "author": "Herman Melville",
+                "title": "Moby Dick",
+                "isbn": "0-553-21311-3",
+                "price": 8.99
+            },
+            {
+                "category": "fiction",
+                "author": "J. R. R. Tolkien",
+                "title": "The Lord of the Rings",
+                "isbn": "0-395-19395-8",
+                "price": 22.99
+            }
+        ],
+        "bicycle": {
+            "color": "red",
+            "price": 19.95
+        }
+    },
+    "expensive": 10
+}
+                        </textarea>
                     </div>
 
                     <div class="input-group">
@@ -155,6 +193,16 @@
         </div>
     </body>
     <script>
+        function getParameterByName( name ){
+            var regexS = "[\\?&]"+name+"=([^&#]*)",
+                    regex = new RegExp( regexS ),
+                    results = regex.exec( window.location.href );
+            if( results == null ){
+                return null;
+            } else{
+                return decodeURIComponent(results[1].replace(/\+/g, " "));
+            }
+        }
 
         $( document ).ready(function() {
             $('#path-status-tool').tooltip({
@@ -212,12 +260,9 @@
                         }
                     }
                 });
-
             }
 
-
             $('#submit').on('click', function() {
-
                 $('.result').empty();
 
                 var json = $('#txtJson').val();
@@ -285,6 +330,12 @@
                 });
             });
 
+            var path =  getParameterByName('path');
+            if(path !== null){
+                $("#txtPath").val(path);
+                $("#submit").click();
+            }
+
         });
 
         var toJsonString = function(src){
@@ -296,5 +347,8 @@
             }
             return str;
         };
+
+
     </script>
+
 </html>
