@@ -5,7 +5,7 @@ Jayway JsonPath (1.0.0)
 
 [![Build Status](https://travis-ci.org/jayway/JsonPath.svg?branch=master)](https://travis-ci.org/jayway/JsonPath)
 
-Jayway JsonPath is a Java port of [Stefan Goessner implementation](http://goessner.net/articles/JsonPath/). JsonPath expressions always refer to a JSON structure in the same way as XPath expression are used in combination 
+Jayway JsonPath is a Java port of [Stefan Goessner JsonPath implementation](http://goessner.net/articles/JsonPath/). JsonPath expressions always refer to a JSON structure in the same way as XPath expression are used in combination 
 with an XML document. The "root member object" in JsonPath is always referred to as `$` regardless if it is an 
 object or array.
 
@@ -77,7 +77,7 @@ Given the json
 }
 ```
 
-| JSONPath (click it to try it)| Result |
+| JsonPath (click link to try)| Result |
 | :------- | :----- |
 | <a href="http://jsonpath.herokuapp.com/?path=$.store.book[*].author" target="_blank">$.store.book[*].author</a>| The authors of all books     |
 | <a href="http://jsonpath.herokuapp.com/?path=$..author" target="_blank">$..author</a>                   | All authors                         |
@@ -96,7 +96,7 @@ Given the json
 | <a href="http://jsonpath.herokuapp.com/?path=$..*" target="_blank">$..*</a>                        | Give me every thing                   |
 
 
-Reading a document
+Reading a Document
 ------------------
 The simplest most straight forward way to use JsonPath is via the static read API.
 
@@ -145,7 +145,7 @@ String author2 = JsonPath.read(document, compiledPath);
 
 What is Returned When?
 ----------------------
-When using JsonPath in java its important to know what type you expect in your result. Json path will automatically 
+When using JsonPath in java its important to know what type you expect in your result. JsonPath will automatically 
 try to cast the result to the type expected by the invoker.
 
 ```java
@@ -165,25 +165,26 @@ When evaluating a path you need to understand the concept of when a path is `def
 
 `Indefinite` paths always returns a list. 
 
-By default some simple conversions are provided by the MappingProvider. This allows to specify the return type you want and the MappingProvider will
-try to perform the mapping. If a book, in the sample json above,  had a long value 'published' you could perform object mapping between `Long` and `Date`
-as shown below. 
+By default a simple object mapper is provided by the MappingProvider SPI. This allows you to specify the return type you want and the MappingProvider will
+try to perform the mapping. In the example below mapping between `Long` and `Date` is demonstrated. 
 
 ```java
-Date date = JsonPath.parse(json).read("$.store.book[0].published", Date.class)
+String json = "{\"date_as_long\" : 1411455611975}";
+
+Date date = JsonPath.parse(json).read("$['date_as_long']", Date.class);
 ```
 
 If you configure JsonPath to use the `JacksonMappingProvider` you can even map your JsonPath output directly into POJO's.
 
 ```java
-Book book = JsonPath.parse(json).read("$.store.book[0]", Book.class)
+Book book = JsonPath.parse(json).read("$.store.book[0]", Book.class);
 ```
 
 Predicates
 ----------
 There are three different ways to create filter predicates in JsonPath.
 
-###Inline predicates
+###Inline Predicates
 
 Inline predicates are the ones defined in the path.
 
@@ -191,7 +192,8 @@ Inline predicates are the ones defined in the path.
 List<Map<String, Object>> books =  JsonPath.parse(json).read("$.store.book[?(@.price < 10)]");
 ```
 
-In the current implementation you can use `&&` to combine multiple predicates `[?(@.price < 10 && @.category == 'fiction')]`. OR operations are not supported yet.
+In the current implementation you can use `&&` to combine multiple predicates `[?(@.price < 10 && @.category == 'fiction')]`. 
+OR operations are not supported in inline predicates yet.
  
 ###The Filter API
  
@@ -209,10 +211,16 @@ Filter cheapFictionFilter = filter(where("category").is("fiction").and("price").
 List<Map<String, Object>> books =  parse(json).read("$.store.book[?]", cheapFictionFilter);
 
 ```
-Note the placeholder '?' for the filter in the path. When multiple filters are provided they are applied in order where the number of placeholders must match 
+Notice the placeholder `?` for the filter in the path. When multiple filters are provided they are applied in order where the number of placeholders must match 
 the number of provided filters. You can specify multiple predicate placeholders in one filter operation `[?, ?]`, both predicates must match. 
 
-###Roll your own
+Filters can also be combined with 'OR' and 'AND'
+```java
+Filter fooOrBar = filter(where("foo").exists(true)).or(where("bar").exists(true));
+Filter fooAndBar = filter(where("foo").exists(true)).and(where("bar").exists(true));
+```
+
+###Roll Your Own
  
 Third option is to implement your own predicates
  
@@ -227,14 +235,14 @@ Predicate booksWithISBN = new Predicate() {
 List<Map<String, Object>> books = reader.read("$.store.book[?].isbn", List.class, booksWithISBN);
 ```
 
-PATH vs VALUE
+Path vs Value
 -------------
-As specified in the Goessner implementation a JsonPath can return either `Path` or `Value`. `Value` is the default and what all the exaples above are reuturning. If you rather have the path of the elements our query is hitting this can be acheived with an option.
+In the Goessner implementation a JsonPath can return either `Path` or `Value`. `Value` is the default and what all the exaples above are reuturning. If you rather have the path of the elements our query is hitting this can be acheived with an option.
 
 ```java
 Configuration conf = Configuration.builder().options(Option.AS_PATH_LIST).build();
 
-List<String> pathList = using(conf).parse(JSON_DOCUMENT).read("$..author");
+List<String> pathList = using(conf).parse(json).read("$..author");
 
 assertThat(pathList).containsExactly(
     "$['store']['book'][0]['author']",
@@ -247,13 +255,71 @@ assertThat(pathList).containsExactly(
 Tweaking Configuration
 ----------------------
 
+###Options
+When creating your Configuration there are a few option flags that can alter the default behaviour.
+
+**DEFAULT_PATH_LEAF_TO_NULL**
+<br/>
+This option makes JsonPath return null for missing leafs. Consider the following json
+
+```javascript
+[
+   {
+      "name" : "john",
+      "gender" : "male"
+   },
+   {
+      "name" : "ben"
+   }
+]
+```
+
+```java
+Configuration conf = Configuration.defaultConfiguration();
+
+//Works fine
+String gender0 = JsonPath.using(conf).read(json, "$[0]['gender']");
+//PathNotFoundException thrown
+String gender1 = JsonPath.using(conf).read(json, "$[1]['gender']");
+
+Configuration conf2 = conf.addOptions(Option.DEFAULT_PATH_LEAF_TO_NULL);
+
+//Works fine
+String gender0 = JsonPath.using(conf2).read(json, "$[0]['gender']");
+//Works fine (null is returned)
+String gender1 = JsonPath.using(conf2).read(json, "$[1]['gender']");
+```
+ 
+**ALWAYS_RETURN_LIST**
+<br/>
+This option configures JsonPath to return a list even when the path is `definite`. 
+ 
+```java
+Configuration conf = Configuration.defaultConfiguration();
+
+//Works fine
+List<String> genders0 = JsonPath.using(conf).read(json, "$[0]['gender']");
+//PathNotFoundException thrown
+List<String> genders1 = JsonPath.using(conf).read(json, "$[1]['gender']");
+``` 
+**SUPPRESS_EXCEPTIONS**
+<br/>
+This option makes sure no exceptions are propagated from path evaluation. It follows these simple rules:
+
+* If option `ALWAYS_RETURN_LIST` is present an empty list will be returned
+* If option `ALWAYS_RETURN_LIST` is **NOT** present null returned 
+
+
+###JsonProvider
+
 JsonPath is shipped with three different JsonProviders:
 
 * [JsonSmartJsonProvider](https://code.google.com/p/json-smart/) (default)
 * [JacksonJsonProvider](https://github.com/FasterXML/jackson)
 * [GsonJsonProvider](https://code.google.com/p/google-gson/) (experimental)
 
-Changing the configuration defaults as demonstrated should only be done when your application is being initialized. Changes during runtime is strongly discouraged, especially in multi threaded applications.  
+Changing the configuration defaults as demonstrated should only be done when your application is being initialized. Changes during runtime is strongly discouraged, especially in multi threaded applications.
+  
 
 ```java
 Configuration.setDefaults(new Configuration.Defaults() {
@@ -291,9 +357,7 @@ JsonPath is available at the Central Maven Repository. Maven users add this to y
     <version>0.9.1</version>
 </dependency>
 ```
-
 Gradle users
- 
  
 ```
 compile 'com.jayway.jsonpath:json-path:0.9.1'
