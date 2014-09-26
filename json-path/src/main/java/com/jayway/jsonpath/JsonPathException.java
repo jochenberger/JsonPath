@@ -12,28 +12,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.jayway.jsonpath.internal.spi.mapper;
+package com.jayway.jsonpath;
 
-import com.jayway.jsonpath.Configuration;
+public class JsonPathException extends RuntimeException {
 
-public class StringMapper extends MapperBase {
-
-    public StringMapper() {
-        register(Object.class, String.class);
+    public JsonPathException() {
     }
 
-    @Override
-    public Object convert(Object src, Class<?> srcType, Class<?> targetType, Configuration conf) {
-        assertValidConversion(src, srcType, targetType);
-
-        if (src == null) {
-            return null;
-        }
-        return src.toString();
+    public JsonPathException(String message) {
+        super(message);
     }
 
-    @Override
-    boolean canConvert(Class<?> srcType, Class<?> targetType){
-        return true;
+    public JsonPathException(String message, Throwable cause) {
+        super(message, cause);
+    }
+
+    public JsonPathException(Throwable cause) {
+        super(cause);
     }
 }

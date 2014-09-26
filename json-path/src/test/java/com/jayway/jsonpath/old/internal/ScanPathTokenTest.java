@@ -15,7 +15,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class ScanPathTokenTest {
 
 
-    public final static Object DOCUMENT = new JsonSmartJsonProvider().parse(
+    public final static Object DOCUMENT = Configuration.defaultConfiguration().jsonProvider().parse(
             "{\n" +
                     " \"store\":{\n" +
                     "  \"book\":[\n" +
@@ -64,7 +64,7 @@ public class ScanPathTokenTest {
                     "}"
     );
 
-    public final static Object DOCUMENT2 = new JsonSmartJsonProvider().parse(
+    public final static Object DOCUMENT2 = Configuration.defaultConfiguration().jsonProvider().parse(
             "{\n" +
                     "     \"firstName\": \"John\",\n" +
                     "     \"lastName\" : \"doe\",\n" +
@@ -88,15 +88,6 @@ public class ScanPathTokenTest {
                     "     ]\n" +
                     " }"
     );
-
-
-    @Test
-    @Ignore("does not work currently")
-    //FIXME handle $.. like the Goessner implementation
-    public void a_root_scan() {
-
-        Object o = JsonPath.read(DOCUMENT, "$..");
-    }
 
     @Test
     public void a_document_can_be_scanned_for_property() {
