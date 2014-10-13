@@ -15,13 +15,16 @@
 package com.jayway.jsonpath.internal.token;
 
 import com.jayway.jsonpath.Configuration;
+import com.jayway.jsonpath.EvaluationListener;
 import com.jayway.jsonpath.Option;
 import com.jayway.jsonpath.PathNotFoundException;
+import com.jayway.jsonpath.internal.EvaluationAbortException;
 import com.jayway.jsonpath.internal.EvaluationContext;
 import com.jayway.jsonpath.internal.Path;
 import com.jayway.jsonpath.spi.json.JsonProvider;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
 
@@ -37,7 +40,9 @@ public class EvaluationContextImpl implements EvaluationContext {
     private final Object pathResult;
     private final Path path;
     private final Object rootDocument;
+    private final HashMap<Path, Object> documentEvalCache = new HashMap<Path, Object>();
     private int resultIndex = 0;
+
 
     public EvaluationContextImpl(Path path, Object rootDocument, Configuration configuration) {
         notNull(path, "path can not be null");
@@ -50,10 +55,23 @@ public class EvaluationContextImpl implements EvaluationContext {
         this.pathResult = configuration.jsonProvider().createArray();
     }
 
+    public HashMap<Path, Object> documentEvalCache() {
+        return documentEvalCache;
+    }
+
     public void addResult(String path, Object model) {
         configuration.jsonProvider().setProperty(valueResult, resultIndex, model);
         configuration.jsonProvider().setProperty(pathResult, resultIndex, path);
         resultIndex++;
+        if(!configuration().getEvaluationListeners().isEmpty()){
+            int idx = resultIndex - 1;
+            for (EvaluationListener listener : configuration().getEvaluationListeners()) {
+                EvaluationListener.EvaluationContinuation continuation = listener.resultFound(new FoundResultImpl(idx, path, model));
+                if(EvaluationListener.EvaluationContinuation.ABORT == continuation){
+                    throw new EvaluationAbortException();
+                }
+            }
+        }
     }
 
     public JsonProvider jsonProvider() {
@@ -106,6 +124,34 @@ public class EvaluationContextImpl implements EvaluationContext {
             }
         }
         return res;
+    }
+
+    private class FoundResultImpl implements EvaluationListener.FoundResult {
+
+        private final int index;
+        private final String path;
+        private final Object result;
+
+        private FoundResultImpl(int index, String path, Object result) {
+            this.index = index;
+            this.path = path;
+            this.result = result;
+        }
+
+        @Override
+        public int index() {
+            return index;
+        }
+
+        @Override
+        public String path() {
+            return path;
+        }
+
+        @Override
+        public Object result() {
+            return result;
+        }
     }
 
 }

@@ -39,6 +39,15 @@ public class Criteria implements Predicate {
 
     private static final Logger logger = LoggerFactory.getLogger(Criteria.class);
 
+    private static final String[] OPERATORS = {
+            CriteriaType.EQ.toString(),
+            CriteriaType.GTE.toString(),
+            CriteriaType.LTE.toString(),
+            CriteriaType.NE.toString(),
+            CriteriaType.LT.toString(),
+            CriteriaType.GT.toString()
+    };
+
     private final Path path;
     private CriteriaType criteriaType;
     private Object expected;
@@ -50,16 +59,26 @@ public class Criteria implements Predicate {
             @Override
             boolean eval(Object expected, Object actual, PredicateContext ctx) {
                 boolean res = (0 == safeCompare(expected, actual));
-                logger.debug("[{}] {} [{}] => {}", actual, name(), expected, res);
+                if(logger.isDebugEnabled()) logger.debug("[{}] {} [{}] => {}", actual, name(), expected, res);
                 return res;
+            }
+
+            @Override
+            public String toString() {
+                return "==";
             }
         },
         NE {
             @Override
             boolean eval(Object expected, Object actual, PredicateContext ctx) {
                 boolean res = (0 != safeCompare(expected, actual));
-                logger.debug("[{}] {} [{}] => {}", actual, name(), expected, res);
+                if(logger.isDebugEnabled()) logger.debug("[{}] {} [{}] => {}", actual, name(), expected, res);
                 return res;
+            }
+
+            @Override
+            public String toString() {
+                return "!=";
             }
         },
         GT {
@@ -69,8 +88,12 @@ public class Criteria implements Predicate {
                     return false;
                 }
                 boolean res = (0 > safeCompare(expected, actual));
-                logger.debug("[{}] {} [{}] => {}", actual, name(), expected, res);
+                if(logger.isDebugEnabled()) logger.debug("[{}] {} [{}] => {}", actual, name(), expected, res);
                 return res;
+            }
+            @Override
+            public String toString() {
+                return ">";
             }
         },
         GTE {
@@ -80,8 +103,12 @@ public class Criteria implements Predicate {
                     return false;
                 }
                 boolean res = (0 >= safeCompare(expected, actual));
-                logger.debug("[{}] {} [{}] => {}", actual, name(), expected, res);
+                if(logger.isDebugEnabled()) logger.debug("[{}] {} [{}] => {}", actual, name(), expected, res);
                 return res;
+            }
+            @Override
+            public String toString() {
+                return ">=";
             }
         },
         LT {
@@ -91,8 +118,12 @@ public class Criteria implements Predicate {
                     return false;
                 }
                 boolean res = (0 < safeCompare(expected, actual));
-                logger.debug("[{}] {} [{}] => {}", actual, name(), expected, res);
+                if(logger.isDebugEnabled()) logger.debug("[{}] {} [{}] => {}", actual, name(), expected, res);
                 return res;
+            }
+            @Override
+            public String toString() {
+                return "<";
             }
         },
         LTE {
@@ -102,8 +133,12 @@ public class Criteria implements Predicate {
                     return false;
                 }
                 boolean res = (0 <= safeCompare(expected, actual));
-                logger.debug("[{}] {} [{}] => {}", actual, name(), expected, res);
+                if(logger.isDebugEnabled()) logger.debug("[{}] {} [{}] => {}", actual, name(), expected, res);
                 return res;
+            }
+            @Override
+            public String toString() {
+                return "<=";
             }
         },
         IN {
@@ -117,7 +152,7 @@ public class Criteria implements Predicate {
                         break;
                     }
                 }
-                logger.debug("[{}] {} [{}] => {}", actual, name(), join(", ", exps), res);
+                if(logger.isDebugEnabled()) logger.debug("[{}] {} [{}] => {}", actual, name(), join(", ", exps), res);
                 return res;
             }
         },
@@ -126,7 +161,7 @@ public class Criteria implements Predicate {
             boolean eval(Object expected, Object actual, PredicateContext ctx) {
                 Collection nexps = (Collection) expected;
                 boolean res = !nexps.contains(actual);
-                logger.debug("[{}] {} [{}] => {}", actual, name(), join(", ", nexps), res);
+                if(logger.isDebugEnabled()) logger.debug("[{}] {} [{}] => {}", actual, name(), join(", ", nexps), res);
                 return res;
             }
         },
@@ -149,10 +184,10 @@ public class Criteria implements Predicate {
                             break;
                         }
                     }
-                    logger.debug("[{}] {} [{}] => {}", join(", ", ctx.configuration().jsonProvider().toIterable(actual)), name(), join(", ", exps), res);
+                    if(logger.isDebugEnabled()) logger.debug("[{}] {} [{}] => {}", join(", ", ctx.configuration().jsonProvider().toIterable(actual)), name(), join(", ", exps), res);
                 } else {
                     res = false;
-                    logger.debug("[{}] {} [{}] => {}", "<NOT AN ARRAY>", name(), join(", ", exps), res);
+                    if(logger.isDebugEnabled()) logger.debug("[{}] {} [{}] => {}", "<NOT AN ARRAY>", name(), join(", ", exps), res);
                 }
                 return res;
             }
@@ -165,14 +200,14 @@ public class Criteria implements Predicate {
                 if (ctx.configuration().jsonProvider().isArray(actual)) {
                     int length = ctx.configuration().jsonProvider().length(actual);
                     res = (length == size);
-                    logger.debug("Array with size {} {} {} => {}", length, name(), size, res);
+                    if(logger.isDebugEnabled()) logger.debug("Array with size {} {} {} => {}", length, name(), size, res);
                 } else if (actual instanceof String) {
                     int length = ((String) actual).length();
                     res = length == size;
-                    logger.debug("String with length {} {} {} => {}", length, name(), size, res);
+                    if(logger.isDebugEnabled()) logger.debug("String with length {} {} {} => {}", length, name(), size, res);
                 } else {
                     res = false;
-                    logger.debug("{} {} {} => {}", actual == null ? "null" : actual.getClass().getName(), name(), size, res);
+                    if(logger.isDebugEnabled()) logger.debug("{} {} {} => {}", actual == null ? "null" : actual.getClass().getName(), name(), size, res);
                 }
                 return res;
             }
@@ -201,15 +236,16 @@ public class Criteria implements Predicate {
                 if (actual != null && actual instanceof String) {
                     res = pattern.matcher(actual.toString()).matches();
                 }
-                logger.debug("[{}] {} [{}] => {}", actual, name(), expected.toString(), res);
+                if(logger.isDebugEnabled()) logger.debug("[{}] {} [{}] => {}", actual, name(), expected.toString(), res);
                 return res;
             }
         },
         MATCHES {
             @Override
             boolean eval(Object expected, final Object actual, final PredicateContext ctx) {
+                PredicateContextImpl pci = (PredicateContextImpl) ctx;
                 Predicate exp = (Predicate) expected;
-                return exp.apply(new PredicateContextImpl(actual, ctx.root(), ctx.configuration()));
+                return exp.apply(new PredicateContextImpl(actual, ctx.root(), ctx.configuration(), pci.documentPathCache()));
             }
         },
         NOT_EMPTY {
@@ -220,11 +256,11 @@ public class Criteria implements Predicate {
                     if (ctx.configuration().jsonProvider().isArray(actual)) {
                         int len = ctx.configuration().jsonProvider().length(actual);
                         res = (0 != len);
-                        logger.debug("array length = {} {} => {}", len, name(), res);
+                        if(logger.isDebugEnabled())  logger.debug("array length = {} {} => {}", len, name(), res);
                     } else if (actual instanceof String) {
                         int len = ((String) actual).length();
                         res = (0 != len);
-                        logger.debug("string length = {} {} => {}", len, name(), res);
+                        if(logger.isDebugEnabled()) logger.debug("string length = {} {} => {}", len, name(), res);
                     }
                 }
                 return res;
@@ -286,7 +322,7 @@ public class Criteria implements Predicate {
         if (CriteriaType.EXISTS == criteriaType) {
             boolean exists = ((Boolean) expected);
             try {
-                Configuration c = Configuration.builder().jsonProvider(ctx.configuration().jsonProvider()).options().build();
+                Configuration c = Configuration.builder().jsonProvider(ctx.configuration().jsonProvider()).options(Option.REQUIRE_PROPERTIES).build();
                 path.evaluate(ctx.item(), ctx.root(), c).getValue();
                 return exists;
             } catch (PathNotFoundException e) {
@@ -299,8 +335,15 @@ public class Criteria implements Predicate {
                 Object expectedVal = expected;
                 if(expected instanceof Path){
                     Path expectedPath = (Path) expected;
-                    Object doc = expectedPath.isRootPath()?ctx.root():ctx.item();
-                    expectedVal = expectedPath.evaluate(doc, ctx.root(), ctx.configuration()).getValue();
+
+                    if(ctx instanceof PredicateContextImpl){
+                        //This will use cache for document ($) queries
+                        PredicateContextImpl ctxi = (PredicateContextImpl) ctx;
+                        expectedVal = ctxi.evaluate(expectedPath);
+                    } else {
+                        Object doc = expectedPath.isRootPath()?ctx.root():ctx.item();
+                        expectedVal = expectedPath.evaluate(doc, ctx.root(), ctx.configuration()).getValue();
+                    }
                 }
 
                 return criteriaType.eval(expectedVal, actual, ctx);
@@ -657,11 +700,46 @@ public class Criteria implements Predicate {
     public String toString() {
         StringBuilder sb = new StringBuilder();
         sb.append(path.toString())
-                .append("|")
-                .append(criteriaType.name())
-                .append("|")
-                .append(expected)
-                .append("|");
+                //.append("|")
+                .append(criteriaType.toString())
+                //.append("|")
+                .append(wrapString(expected));
+                //.append("|");
         return sb.toString();
+    }
+
+    private String wrapString(Object o){
+        if(o == null){
+            return "null";
+        }
+        if(o instanceof String){
+            return "'" + o.toString() + "'";
+        } else {
+            return o.toString();
+        }
+    }
+
+
+
+    public static Criteria parse(String criteria){
+
+        int operatorIndex = -1;
+        String left = "";
+        String operator = "";
+        String right = "";
+        for (int y = 0; y < OPERATORS.length; y++) {
+            operatorIndex = criteria.indexOf(OPERATORS[y]);
+            if (operatorIndex != -1) {
+                operator = OPERATORS[y];
+                break;
+            }
+        }
+        if (!operator.isEmpty()) {
+            left = criteria.substring(0, operatorIndex).trim();
+            right = criteria.substring(operatorIndex + operator.length()).trim();
+        } else {
+            left = criteria.trim();
+        }
+        return Criteria.create(left, operator, right);
     }
 }

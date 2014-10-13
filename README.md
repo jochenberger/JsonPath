@@ -1,11 +1,32 @@
-Jayway JsonPath (1.0.0)
-===============
+Jayway JsonPath 1.1.0
+=====================
 
 **A Java DSL for reading JSON documents.**
 
 [![Build Status](https://travis-ci.org/jayway/JsonPath.svg?branch=master)](https://travis-ci.org/jayway/JsonPath)
 
 Jayway JsonPath is a Java port of [Stefan Goessner JsonPath implementation](http://goessner.net/articles/JsonPath/). 
+
+News
+----
+
+01 Oct 2014 - Released JsonPath 1.1.0  
+26 Sep 2014 - Released JsonPath 1.0.0 
+
+For details see [change log](changelog.md).
+
+Getting Started
+---------------
+
+JsonPath is available at the Central Maven Repository. Maven users add this to your POM.
+
+```xml
+<dependency>
+    <groupId>com.jayway.jsonpath</groupId>
+    <artifactId>json-path</artifactId>
+    <version>1.1.0</version>
+</dependency>
+```
 
 JsonPath expressions always refer to a JSON structure in the same way as XPath expression are used in combination 
 with an XML document. The "root member object" in JsonPath is always referred to as `$` regardless if it is an 
@@ -163,7 +184,6 @@ When evaluating a path you need to understand the concept of when a path is `def
 * `..` - a deep scan operator
 * `?(<expression>)` - an expression
 * `[<number>, <number> (, <number>)]` - multiple array indexes
-* `['<name>', '<name>' (, '<name>')]` - multiple object properties
 
 `Indefinite` paths always returns a list. 
 
@@ -347,22 +367,7 @@ Configuration.setDefaults(new Configuration.Defaults() {
 
 Note that the JacksonJsonProvider requires `com.fasterxml.jackson.core:jackson-databind:2.4.1.3` and the GsonJsonProvider requires `com.google.code.gson:gson:2.3` on your classpath. 
 
-Binaries
---------
 
-JsonPath is available at the Central Maven Repository. Maven users add this to your POM.
 
-```xml
-<dependency>
-    <groupId>com.jayway.jsonpath</groupId>
-    <artifactId>json-path</artifactId>
-    <version>0.9.1</version>
-</dependency>
-```
-Gradle users
- 
-```
-compile 'com.jayway.jsonpath:json-path:0.9.1'
-``` 
 
 [![Analytics](https://ga-beacon.appspot.com/UA-54945131-1/jsonpath/index)](https://github.com/igrigorik/ga-beacon)

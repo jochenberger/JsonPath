@@ -15,6 +15,7 @@
 package com.jayway.jsonpath.internal;
 
 import com.jayway.jsonpath.Configuration;
+import com.jayway.jsonpath.EvaluationListener;
 import com.jayway.jsonpath.JsonPath;
 import com.jayway.jsonpath.ParseContext;
 import com.jayway.jsonpath.Predicate;
@@ -42,6 +43,13 @@ public class JsonReader implements ParseContext, ReadContext {
     public JsonReader(Configuration configuration) {
         notNull(configuration, "configuration can not be null");
         this.configuration = configuration;
+    }
+
+    private JsonReader(Object json, Configuration configuration) {
+        notNull(json, "json can not be null");
+        notNull(configuration, "configuration can not be null");
+        this.configuration = configuration;
+        this.json = json;
     }
 
     //------------------------------------------------
@@ -72,8 +80,12 @@ public class JsonReader implements ParseContext, ReadContext {
     public ReadContext parse(InputStream json, String charset) {
         notNull(json, "json input stream can not be null");
         notNull(json, "charset can not be null");
-        this.json = configuration.jsonProvider().parse(json, charset);
-        return this;
+        try {
+            this.json = configuration.jsonProvider().parse(json, charset);
+            return this;
+        } finally {
+            Utils.closeQuietly(json);
+        }
     }
 
     @Override
@@ -133,8 +145,36 @@ public class JsonReader implements ParseContext, ReadContext {
         return convert(read(path), type, configuration);
     }
 
+    public ReadContext limit(int maxResults){
+        return withListeners(new LimitingEvaluationListener(maxResults));
+    }
+
+    public ReadContext withListeners(EvaluationListener... listener){
+        return new JsonReader(json, configuration.setEvaluationListeners(listener));
+    }
+
+
     private <T> T convert(Object obj, Class<T> targetType, Configuration configuration){
         return configuration.mappingProvider().map(obj, targetType, configuration);
     }
 
+
+    private final class LimitingEvaluationListener implements EvaluationListener {
+
+        final int limit;
+
+        private LimitingEvaluationListener(int limit) {
+            this.limit = limit;
+        }
+
+
+        @Override
+        public EvaluationContinuation resultFound(FoundResult found) {
+            if(found.index() == limit - 1){
+                return EvaluationContinuation.ABORT;
+            } else {
+                return EvaluationContinuation.CONTINUE;
+            }
+        }
+    }
 }
