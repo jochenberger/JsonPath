@@ -15,6 +15,7 @@
 package com.jayway.jsonpath.internal;
 
 import com.jayway.jsonpath.Configuration;
+import com.jayway.jsonpath.DocumentContext;
 import com.jayway.jsonpath.EvaluationListener;
 import com.jayway.jsonpath.JsonPath;
 import com.jayway.jsonpath.ParseContext;
@@ -28,10 +29,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 
+import static com.jayway.jsonpath.JsonPath.compile;
 import static com.jayway.jsonpath.internal.Utils.notEmpty;
 import static com.jayway.jsonpath.internal.Utils.notNull;
 
-public class JsonReader implements ParseContext, ReadContext {
+public class JsonReader implements ParseContext, DocumentContext {
 
     private final Configuration configuration;
     private Object json;
@@ -58,26 +60,26 @@ public class JsonReader implements ParseContext, ReadContext {
     //
     //------------------------------------------------
     @Override
-    public ReadContext parse(Object json) {
+    public DocumentContext parse(Object json) {
         notNull(json, "json object can not be null");
         this.json = json;
         return this;
     }
 
     @Override
-    public ReadContext parse(String json) {
+    public DocumentContext parse(String json) {
         notEmpty(json, "json string can not be null or empty");
         this.json = configuration.jsonProvider().parse(json);
         return this;
     }
 
     @Override
-    public ReadContext parse(InputStream json) {
+    public DocumentContext parse(InputStream json) {
         return parse(json, "UTF-8");
     }
 
     @Override
-    public ReadContext parse(InputStream json, String charset) {
+    public DocumentContext parse(InputStream json, String charset) {
         notNull(json, "json input stream can not be null");
         notNull(json, "charset can not be null");
         try {
@@ -89,7 +91,7 @@ public class JsonReader implements ParseContext, ReadContext {
     }
 
     @Override
-    public ReadContext parse(File json) throws IOException {
+    public DocumentContext parse(File json) throws IOException {
         notNull(json, "json file can not be null");
         FileInputStream fis = null;
         try {
@@ -102,7 +104,7 @@ public class JsonReader implements ParseContext, ReadContext {
     }
 
     @Override
-    public ReadContext parse(URL json) throws IOException {
+    public DocumentContext parse(URL json) throws IOException {
         notNull(json, "json url can not be null");
         InputStream is = HttpProviderFactory.getProvider().get(json);
         return parse(is);
@@ -126,7 +128,7 @@ public class JsonReader implements ParseContext, ReadContext {
     @Override
     public <T> T read(String path, Predicate... filters) {
         notEmpty(path, "path can not be null or empty");
-        return read(JsonPath.compile(path, filters));
+        return read(compile(path, filters));
     }
 
     @Override
@@ -158,6 +160,49 @@ public class JsonReader implements ParseContext, ReadContext {
         return configuration.mappingProvider().map(obj, targetType, configuration);
     }
 
+    @Override
+    public DocumentContext set(String path, Object newValue, Predicate... filters) {
+        return set(compile(path, filters), newValue);
+    }
+
+    @Override
+    public DocumentContext set(JsonPath path, Object newValue){
+        Object modifiedJson = path.set(json, newValue, configuration);
+        return new JsonReader(modifiedJson, configuration);
+    }
+
+    @Override
+    public DocumentContext delete(String path, Predicate... filters) {
+        return delete(compile(path, filters));
+    }
+
+    @Override
+    public DocumentContext delete(JsonPath path) {
+        Object modifiedJson = path.delete(json, configuration);
+        return new JsonReader(modifiedJson, configuration);
+    }
+
+    @Override
+    public DocumentContext add(String path, Object value, Predicate... filters){
+        return add(compile(path, filters), value);
+    }
+
+    @Override
+    public DocumentContext add(JsonPath path, Object value){
+        Object modifiedJson = path.add(json, value, configuration);
+        return new JsonReader(modifiedJson, configuration);
+    }
+
+    @Override
+    public DocumentContext put(String path, String key, Object value, Predicate... filters){
+        return put(compile(path, filters), key, value);
+    }
+
+    @Override
+    public DocumentContext put(JsonPath path, String key, Object value){
+        Object modifiedJson = path.put(json, key, value, configuration);
+        return new JsonReader(modifiedJson, configuration);
+    }
 
     private final class LimitingEvaluationListener implements EvaluationListener {
 
