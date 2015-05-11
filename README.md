@@ -1,4 +1,4 @@
-Jayway JsonPath 1.2.0
+Jayway JsonPath 2.0.0
 =====================
 
 **A Java DSL for reading JSON documents.**
@@ -9,9 +9,12 @@ Jayway JsonPath is a Java port of [Stefan Goessner JsonPath implementation](http
 
 News
 ----
+19 Mar 2015 - Released JsonPath 2.0.0
 
-11 Nov 2014 - Released JsonPath 1.2.0  
+11 Nov 2014 - Released JsonPath 1.2.0
+
 01 Oct 2014 - Released JsonPath 1.1.0  
+
 26 Sep 2014 - Released JsonPath 1.0.0 
 
 For details see [change log](changelog.md).
@@ -25,9 +28,11 @@ JsonPath is available at the Central Maven Repository. Maven users add this to y
 <dependency>
     <groupId>com.jayway.jsonpath</groupId>
     <artifactId>json-path</artifactId>
-    <version>1.2.0</version>
+    <version>2.0.0</version>
 </dependency>
 ```
+
+If you need help ask questions at the [google group](https://groups.google.com/forum/#!forum/jsonpath). 
 
 JsonPath expressions always refer to a JSON structure in the same way as XPath expression are used in combination 
 with an XML document. The "root member object" in JsonPath is always referred to as `$` regardless if it is an 
@@ -117,6 +122,7 @@ Given the json
 | <a href="http://jsonpath.herokuapp.com/?path=$..book[?(@.isbn)]" target="_blank">$..book[?(@.isbn)]</a>          | All books with an ISBN number         |
 | <a href="http://jsonpath.herokuapp.com/?path=$.store.book[?(@.price < 10)]" target="_blank">$.store.book[?(@.price < 10)]</a> | All books in store cheaper than 10  |
 | <a href="http://jsonpath.herokuapp.com/?path=$..book[?(@.price <= $['expensive'])]" target="_blank">$..book[?(@.price <= $['expensive'])]</a> | All books in store that are not "expensive"  |
+| <a href="http://jsonpath.herokuapp.com/?path=$..book[?(@.author =~ /.*REES/i)]" target="_blank">$..book[?(@.author =~ /.*REES/i)]</a> | All books matching regex (ignore case)  |
 | <a href="http://jsonpath.herokuapp.com/?path=$..*" target="_blank">$..*</a>                        | Give me every thing                   |
 
 
@@ -156,16 +162,6 @@ List<Map<String, Object>> expensiveBooks = JsonPath
                             .parse(json)
                             .read("$.store.book[?(@.price > 10)]", List.class);
 ```
-
-All `read` operations are overloaded and also supports compiled JsonPath objects. This can be useful from a performance perspective if the same path is to be executed
-many times.
-   
-```java
-JsonPath compiledPath = JsonPath.compile("$.store.book[1].author");
-
-String author2 = JsonPath.read(document, compiledPath);
-```   
-
 
 What is Returned When?
 ----------------------
@@ -212,7 +208,8 @@ There are three different ways to create filter predicates in JsonPath.
 Inline predicates are the ones defined in the path.
 
 ```java
-List<Map<String, Object>> books =  JsonPath.parse(json).read("$.store.book[?(@.price < 10)]");
+List<Map<String, Object>> books =  JsonPath.parse(json)
+                                     .read("$.store.book[?(@.price < 10)]");
 ```
 
 You can use `&&` and `||` to combine multiple predicates `[?(@.price < 10 && @.category == 'fiction')]` , 
@@ -229,9 +226,12 @@ import static com.jayway.jsonpath.Filter.filter;
 ...
 ...
 
-Filter cheapFictionFilter = filter(where("category").is("fiction").and("price").lte(10D));
+Filter cheapFictionFilter = filter(
+   where("category").is("fiction").and("price").lte(10D)
+);
 
-List<Map<String, Object>> books =  parse(json).read("$.store.book[?]", cheapFictionFilter);
+List<Map<String, Object>> books =  
+   parse(json).read("$.store.book[?]", cheapFictionFilter);
 
 ```
 Notice the placeholder `?` for the filter in the path. When multiple filters are provided they are applied in order where the number of placeholders must match 
@@ -239,8 +239,13 @@ the number of provided filters. You can specify multiple predicate placeholders 
 
 Filters can also be combined with 'OR' and 'AND'
 ```java
-Filter fooOrBar = filter(where("foo").exists(true)).or(where("bar").exists(true));
-Filter fooAndBar = filter(where("foo").exists(true)).and(where("bar").exists(true));
+Filter fooOrBar = filter(
+   where("foo").exists(true)).or(where("bar").exists(true)
+);
+   
+Filter fooAndBar = filter(
+   where("foo").exists(true)).and(where("bar").exists(true)
+);
 ```
 
 ###Roll Your Own
@@ -255,7 +260,8 @@ Predicate booksWithISBN = new Predicate() {
     }
 };
 
-List<Map<String, Object>> books = reader.read("$.store.book[?].isbn", List.class, booksWithISBN);
+List<Map<String, Object>> books = 
+   reader.read("$.store.book[?].isbn", List.class, booksWithISBN);
 ```
 
 Path vs Value
@@ -263,7 +269,8 @@ Path vs Value
 In the Goessner implementation a JsonPath can return either `Path` or `Value`. `Value` is the default and what all the exaples above are reuturning. If you rather have the path of the elements our query is hitting this can be acheived with an option.
 
 ```java
-Configuration conf = Configuration.builder().options(Option.AS_PATH_LIST).build();
+Configuration conf = Configuration.builder()
+   .options(Option.AS_PATH_LIST).build();
 
 List<String> pathList = using(conf).parse(json).read("$..author");
 
@@ -349,6 +356,7 @@ Changing the configuration defaults as demonstrated should only be done when you
 Configuration.setDefaults(new Configuration.Defaults() {
 
     private final JsonProvider jsonProvider = new JacksonJsonProvider();
+    private final MappingProvider mappingProvider = new JacksonMappingProvider();
       
     @Override
     public JsonProvider jsonProvider() {
@@ -357,7 +365,7 @@ Configuration.setDefaults(new Configuration.Defaults() {
 
     @Override
     public MappingProvider mappingProvider() {
-        return new JacksonMappingProvider();
+        return mappingProvider;
     }
     
     @Override
@@ -367,7 +375,7 @@ Configuration.setDefaults(new Configuration.Defaults() {
 });
 ```
 
-Note that the JacksonJsonProvider requires `com.fasterxml.jackson.core:jackson-databind:2.4.1.3` and the GsonJsonProvider requires `com.google.code.gson:gson:2.3` on your classpath. 
+Note that the JacksonJsonProvider requires `com.fasterxml.jackson.core:jackson-databind:2.4.5` and the GsonJsonProvider requires `com.google.code.gson:gson:2.3.1` on your classpath. 
 
 
 
