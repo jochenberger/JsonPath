@@ -10,8 +10,10 @@ import com.jayway.jsonpath.Option;
 import com.jayway.jsonpath.PathNotFoundException;
 import com.jayway.jsonpath.Predicate;
 import com.jayway.jsonpath.internal.Utils;
+import com.jayway.jsonpath.spi.json.GsonJsonProvider;
 import com.jayway.jsonpath.spi.json.JacksonJsonProvider;
 import com.jayway.jsonpath.spi.json.JsonProvider;
+import com.jayway.jsonpath.spi.mapper.GsonMappingProvider;
 import com.jayway.jsonpath.spi.mapper.JacksonMappingProvider;
 import com.jayway.jsonpath.spi.mapper.MappingProvider;
 import net.minidev.json.JSONAware;
@@ -600,8 +602,50 @@ public class IssuesTest extends BaseTest {
             Assert.assertTrue(false);
         } catch (RuntimeException e){
         }
+    }
 
+    @Test
+    public void issue_79() throws Exception {
+         String json = "{ \n" +
+                 "  \"c\": {\n" +
+                 "    \"d1\": {\n" +
+                 "      \"url\": [ \"url1\", \"url2\" ]\n" +
+                 "    },\n" +
+                 "    \"d2\": {\n" +
+                 "      \"url\": [ \"url3\", \"url4\",\"url5\" ]\n" +
+                 "    }\n" +
+                 "  }\n" +
+                 "}";
 
+        List<String> res = JsonPath.read(json, "$.c.*.url[2]");
 
+        Assertions.assertThat(res).containsExactly("url5");
+    }
+    @Test
+    public void issue_97() throws Exception {
+        String json = "{ \"books\": [ " +
+                "{ \"category\": \"fiction\" }, " +
+                "{ \"category\": \"reference\" }, " +
+                "{ \"category\": \"fiction\" }, " +
+                "{ \"category\": \"fiction\" }, " +
+                "{ \"category\": \"reference\" }, " +
+                "{ \"category\": \"fiction\" }, " +
+                "{ \"category\": \"reference\" }, " +
+                "{ \"category\": \"reference\" }, " +
+                "{ \"category\": \"reference\" }, " +
+                "{ \"category\": \"reference\" }, " +
+                "{ \"category\": \"reference\" } ]  }";
+
+        Configuration conf = Configuration.builder()
+                .jsonProvider(new GsonJsonProvider())
+                .mappingProvider(new GsonMappingProvider())
+                .build();
+
+        DocumentContext context = JsonPath.using(conf).parse(json);
+        context.delete("$.books[?(@.category == 'reference')]");
+
+        List<String> categories = context.read("$..category", List.class);
+
+        Assertions.assertThat(categories).containsOnly("fiction");
     }
 }
